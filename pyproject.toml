@@ -1,7 +1,9 @@
 [project]
 name = "binavry"
-version = "0.1.0"
+dynamic = ["version"]
 description = "(WIP) AVR support for Binary Ninja"
+authors = [{ name = "m1stadev", email = "adamhamdi31@gmail.com" }]
+license = { file = "LICENSE" }
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
@@ -41,6 +43,3 @@ ignore = ["E722"]
 
 [tool.ruff.format]
 quote-style = "single"
-
-[tool.pytest.ini_options]
-testpaths = ["tests"]
