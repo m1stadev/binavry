@@ -23,10 +23,10 @@ class InstructionData:
 
         return (mask, val)
 
-from .bit import _BIT_INSNS  # noqa: E402
-from .ctrl import _CTRL_INSNS  # noqa: E402
-from .data import _DATA_INSNS  # noqa: E402
-from .flow import _FLOW_INSNS  # noqa: E402
-from .logic import _LOGIC_INSNS  # noqa: E402
+from .bit import _BIT_INSNS
+from .ctrl import _CTRL_INSNS
+from .data import _DATA_INSNS
+from .flow import _FLOW_INSNS
+from .logic import _LOGIC_INSNS
 
 Instructions = tuple(sorted([i for i in (*_BIT_INSNS, *_CTRL_INSNS, *_DATA_INSNS, *_FLOW_INSNS, *_LOGIC_INSNS)], key=lambda i: i.name))
