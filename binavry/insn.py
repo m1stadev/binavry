@@ -14,10 +14,6 @@ class Operand:
     op_type: 'OpType'
     value: int
 
-    def __int__(self) -> int:
-        return self.value
-
-
 class OpType(StrEnum):
     REG_DST = 'd'
     REG_SRC = 'r'
@@ -74,37 +70,47 @@ class Instruction:
         for arg in insn.op_order:
             idx = [i for i, o in enumerate(insn.sig) if o == arg]
 
-            op = Operand(
-                insn=obj,
-                op_type=OpType(arg),
-                value=Tibs(data[i] for i in idx).to_u()
-            )
-
-            verify = None
-            match OpType(arg):
+            op = Tibs(data[i] for i in idx)
+            op_type = OpType(arg)
+            value = None
+            match op_type:
                 case OpType.REG_DST | OpType.REG_SRC:
                     match len(idx):
                         case 2:
-                            verify = lambda op: 0 <= op <= 4  # noqa: E731
+                            value = op.u if 0 <= op.u <= 4 else None
                         case 3:
-                            verify = lambda op: 16 <= op <= 23  # noqa: E731
+                            value = op.u if 16 <= op.u <= 23 else None
                         case 4:
-                            verify = lambda op: 16 <= op <= 31 # noqa: E731
+                            value = op.u if 16 <= op.u <= 31 else None
                         case 5:
-                            verify = lambda op: 0 <= op <= 31  # noqa: E731
-                case OpType.BIT_REG | OpType.BIT_SREG:
-                    pass
-                case OpType.ADDR_DIS | OpType.ADDR_IMM | OpType.ADDR_IO:
-                    pass
-                case OpType.IMM:
-                    pass
+                            value = op.u if 0 <= op.u <= 31 else None
 
-            if (verify is not None) and verify(op):
-                obj.add_operand(op)
+                case OpType.BIT_REG | OpType.BIT_SREG:
+                    value = op.u if 0 <= op.u <= 7 else None
+
+                case OpType.ADDR_IMM:
+                    match len(idx):
+                        case 7:
+                            value = op.u if 0 <= op.u <= ((2 ** len(idx)) - 1) else None
+                        case 12:
+                            value = op.i if (-1 * (2 ** 11)) < op.i < (2 ** 11) else None
+                        case 16:
+                            value = op.i if (-1 * (2 ** 11)) < op.i < ((2 ** 16) - 1) else None
+                        case 22:
+                            if insn.name == 'CALL':
+                                #TODO: Fix fail on SoCs with a 22-bit PC
+                                value = op.u if 0 <= op.u <= ((2 ** 16) - 1) else None
+                            elif insn.name == 'JMP':
+                                value = op.u if 0 <= op.u <= ((2 ** 22) - 1) else None
+
+                case OpType.IMM | OpType.ADDR_DIS | OpType.ADDR_IO:
+                    value = op.u if 0 <= op.u <= ((2 ** len(idx)) - 1) else None
+
+            if (value is not None):
+                obj.add_operand(Operand(
+                    insn=obj,
+                    op_type=op_type,
+                    value=value
+                ))
 
         return obj
-
-
-
-
-

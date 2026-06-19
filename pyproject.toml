@@ -39,7 +39,7 @@ target-version = "py311"
 
 [tool.ruff.lint]
 extend-select = ["I"]
-ignore = ["E722"]
+ignore = ["E722", "E731"]
 
 [tool.ruff.format]
 quote-style = "single"

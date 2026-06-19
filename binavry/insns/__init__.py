@@ -29,4 +29,4 @@ from .data import _DATA_INSNS  # noqa: E402
 from .flow import _FLOW_INSNS  # noqa: E402
 from .logic import _LOGIC_INSNS  # noqa: E402
 
-Instructions = tuple(i for i in (*_BIT_INSNS, *_CTRL_INSNS, *_DATA_INSNS, *_FLOW_INSNS, *_LOGIC_INSNS))
+Instructions = tuple(sorted([i for i in (*_BIT_INSNS, *_CTRL_INSNS, *_DATA_INSNS, *_FLOW_INSNS, *_LOGIC_INSNS)], key=lambda i: i.name))
