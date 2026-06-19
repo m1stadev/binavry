@@ -1,0 +1,34 @@
+from . import InstructionData
+
+_BIT_INSNS = (
+    InstructionData(name='ASR',  mnem='asr',  sig='1001010ddddd0101', op_order='d'),
+    InstructionData(name='BCLR', mnem='bclr', sig='100101001sss1000', op_order='s'),
+    InstructionData(name='BLD',  mnem='bld',  sig='1111100ddddd0bbb', op_order='db'),
+    InstructionData(name='BSET', mnem='bset', sig='100101000sss1000', op_order='s'),
+    InstructionData(name='BST',  mnem='bst',  sig='1111101ddddd0bbb', op_order='db'),
+    InstructionData(name='CBI',  mnem='cbi',  sig='10011000AAAAAbbb', op_order='Ab'),
+    InstructionData(name='CLC',  mnem='clc',  sig='1001010010001000'),
+    InstructionData(name='CLH',  mnem='clh',  sig='1001010011011000'),
+    InstructionData(name='CLI',  mnem='cli',  sig='1001010011111000'),
+    InstructionData(name='CLN',  mnem='cln',  sig='1001010010101000'),
+    InstructionData(name='CLS',  mnem='cls',  sig='1001010011001000'),
+    InstructionData(name='CLT',  mnem='clt',  sig='1001010011101000'),
+    InstructionData(name='CLV',  mnem='clv',  sig='1001010010111000'),
+    InstructionData(name='CLZ',  mnem='clz',  sig='1001010010011000'),
+    InstructionData(name='LSR',  mnem='lsr',  sig='1001010ddddd0110', op_order='d'),
+    InstructionData(name='ROR',  mnem='ror',  sig='1001010ddddd0111', op_order='d'),
+    InstructionData(name='SBI',  mnem='sbi',  sig='10011010AAAAAbbb', op_order='Ab'),
+    InstructionData(name='SEC',  mnem='sec',  sig='1001010000001000'),
+    InstructionData(name='SEH',  mnem='seh',  sig='1001010001011000'),
+    InstructionData(name='SEI',  mnem='sei',  sig='1001010001111000'),
+    InstructionData(name='SEN',  mnem='sen',  sig='1001010000101000'),
+    InstructionData(name='SES',  mnem='ses',  sig='1001010001001000'),
+    InstructionData(name='SET',  mnem='set',  sig='1001010001101000'),
+    InstructionData(name='SEV',  mnem='sev',  sig='1001010000111000'),
+    InstructionData(name='SEZ',  mnem='sez',  sig='1001010000011000'),
+    InstructionData(name='SWAP', mnem='swap', sig='1001010ddddd0010', op_order='d'),
+
+    #TODO: Handle LSL/ROL properly
+    #InstructionData(name='LSL',  mnem='lsl',  sig='000011dddddddddd', op_order='dd'),
+    #InstructionData(name='ROL',  mnem='rol',  sig='000111dddddddddd', op_order='dd'),
+    )
