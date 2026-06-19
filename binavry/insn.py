@@ -36,7 +36,24 @@ class Instruction:
     def __init__(self, data: bytes, idata: InstructionData, operands: list[Operand] = []):
         self._data = data
         self._idata = idata
-        self._ops = operands
+        self._ops: list[Operand] = operands
+
+    @property
+    def idata(self) -> InstructionData:
+        return self._idata
+
+    @property
+    def operands(self) -> tuple[Operand, ...]:
+        return tuple(self._ops)
+
+    def add_operand(self, op: Operand) -> None:
+        self._ops.append(op)
+
+    def rm_operand(self, op: Operand) -> None:
+        if op not in self._ops:
+            raise ValueError('Provided operand is not in Instruction')
+
+        self._ops.remove(op)
 
     @classmethod
     def decode(cls, data: bytes) -> Self:
@@ -69,8 +86,12 @@ class Instruction:
                     match len(idx):
                         case 2:
                             verify = lambda op: 0 <= op <= 4  # noqa: E731
+                        case 3:
+                            verify = lambda op: 16 <= op <= 23  # noqa: E731
+                        case 4:
+                            verify = lambda op: 16 <= op <= 31 # noqa: E731
                         case 5:
-                        verify = lambda op: 0 <= op <= 31  # noqa: E731
+                            verify = lambda op: 0 <= op <= 31  # noqa: E731
                 case OpType.BIT_REG | OpType.BIT_SREG:
                     pass
                 case OpType.ADDR_DIS | OpType.ADDR_IMM | OpType.ADDR_IO:
@@ -79,7 +100,7 @@ class Instruction:
                     pass
 
             if (verify is not None) and verify(op):
-                obj._ops.append(op)
+                obj.add_operand(op)
 
         return obj
 
