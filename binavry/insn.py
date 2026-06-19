@@ -10,7 +10,6 @@ from .insns import InstructionData, Instructions
 
 @dataclass(frozen=True)
 class Operand:
-    insn: 'Instruction'
     op_type: 'OpType'
     value: int
 
@@ -53,12 +52,11 @@ class Instruction:
 
     @classmethod
     def decode(cls, data: bytes) -> Self:
-        data = Tibs(data).byte_swapped(2)  # ty:ignore[invalid-assignment]
+        data: Tibs = Tibs.from_bytes(data).byte_swapped(2)
         for i in Instructions:
             mask, val = i.maskval
             if len(data) != len(mask):
                 continue
-
 
             if (data & mask) == val:
                 insn = i
@@ -66,7 +64,7 @@ class Instruction:
         else:
             raise ValueError('No valid instructions found in data')
 
-        obj = cls(data=data, idata=insn)
+        operands = list()
         for arg in insn.op_order:
             idx = [i for i, o in enumerate(insn.sig) if o == arg]
 
@@ -91,26 +89,22 @@ class Instruction:
                 case OpType.ADDR_IMM:
                     match len(idx):
                         case 7:
-                            value = op.u if 0 <= op.u <= ((2 ** len(idx)) - 1) else None
+                            value = (op.u * 2) if 0 <= op.u <= ((2 ** len(idx)) - 1) else None
                         case 12:
-                            value = op.i if (-1 * (2 ** 11)) < op.i < (2 ** 11) else None
+                            value = (op.i * 2) if (-1 * (2 ** 11)) < op.i < (2 ** 11) else None
                         case 16:
-                            value = op.i if (-1 * (2 ** 11)) < op.i < ((2 ** 16) - 1) else None
+                            value = (op.i * 2) if (-1 * (2 ** 11)) < op.i < ((2 ** 16) - 1) else None
                         case 22:
                             if insn.name == 'CALL':
                                 #TODO: Fix fail on SoCs with a 22-bit PC
-                                value = op.u if 0 <= op.u <= ((2 ** 16) - 1) else None
+                                value = (op.u * 2) if 0 <= op.u <= ((2 ** 16) - 1) else None
                             elif insn.name == 'JMP':
-                                value = op.u if 0 <= op.u <= ((2 ** 22) - 1) else None
+                                value = (op.u * 2) if 0 <= op.u <= ((2 ** 22) - 1) else None
 
                 case OpType.IMM | OpType.ADDR_DIS | OpType.ADDR_IO:
                     value = op.u if 0 <= op.u <= ((2 ** len(idx)) - 1) else None
 
-            if (value is not None):
-                obj.add_operand(Operand(
-                    insn=obj,
-                    op_type=op_type,
-                    value=value
-                ))
+            if value is not None:
+                operands.append(Operand(op_type=op_type, value=value))
 
-        return obj
+        return cls(data.to_bytes(), idata=insn, operands=operands)
