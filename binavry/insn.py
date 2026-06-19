@@ -14,6 +14,9 @@ class Operand:
     op_type: 'OpType'
     value: int
 
+    def __int__(self) -> int:
+        return self.value
+
 
 class OpType(StrEnum):
     REG_DST = 'd'
@@ -63,7 +66,10 @@ class Instruction:
             verify = None
             match OpType(arg):
                 case OpType.REG_DST | OpType.REG_SRC:
-                    if len(idx) == 5:
+                    match len(idx):
+                        case 2:
+                            verify = lambda op: 0 <= op <= 4  # noqa: E731
+                        case 5:
                         verify = lambda op: 0 <= op <= 31  # noqa: E731
                 case OpType.BIT_REG | OpType.BIT_SREG:
                     pass
