@@ -13,12 +13,13 @@ class Operand:
     value: int
     index: tuple[int, ...]
 
+
 class OpType(StrEnum):
     REG_DST = 'd'
     REG_SRC = 'r'
 
     IMM = 'K'
-    
+
     BIT_REG = 'b'
     BIT_SREG = 's'
 
@@ -28,7 +29,9 @@ class OpType(StrEnum):
 
 
 class Instruction:
-    def __init__(self, data: bytes, idata: InstructionData, operands: list[Operand] = []):
+    def __init__(
+        self, data: bytes, idata: InstructionData, operands: list[Operand] = []
+    ):
         self._data = data
         self._idata = idata
         self._ops: list[Operand] = operands
@@ -98,20 +101,22 @@ class Instruction:
                     case OpType.ADDR_IMM:
                         match len(idx):
                             case 7:
-                                #if '_rc' in insn.name:
+                                # if '_rc' in insn.name:
                                 #    value = op.u if 0 <= op.u <= 127 else None
-                                #else:
-                                    value = (op.i * 2) if -0x40 <= op.i < 0x40 else None
+                                # else:
+                                value = (op.i * 2) if -0x40 <= op.i < 0x40 else None
                             case 12:
                                 value = (op.i * 2) if -0x800 <= op.i < 0x800 else None
                             case 16:
                                 value = (op.u * 2) if 0 < op.u <= 0x7FFF else None
                             case 22:
                                 if insn.name == 'CALL':
-                                    #TODO: Fix fail on SoCs with a 22-bit PC
+                                    # TODO: Fix fail on SoCs with a 22-bit PC
                                     value = (op.u * 2) if 0 <= op.u <= 0x7FFF else None
                                 elif insn.name == 'JMP':
-                                    value = (op.u * 2) if 0 <= op.u <= 0x1FFFFF else None
+                                    value = (
+                                        (op.u * 2) if 0 <= op.u <= 0x1FFFFF else None
+                                    )
 
                     case OpType.IMM | OpType.ADDR_DIS | OpType.ADDR_IO:
                         value = op.u if 0 <= op.u <= ((2 ** len(idx)) - 1) else None

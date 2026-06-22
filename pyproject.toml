@@ -39,7 +39,10 @@ target-version = "py311"
 
 [tool.ruff.lint]
 extend-select = ["I"]
-ignore = ["E402", "E722", "E731"]
+ignore = ["E402", "E722", "E731", "F401"]
 
 [tool.ruff.format]
 quote-style = "single"
+
+[tool.ty.rules]
+invalid-argument-type = "ignore"
