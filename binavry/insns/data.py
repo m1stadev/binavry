@@ -53,7 +53,8 @@ _DATA_INSNS = (
     InstructionData(name='STD_y',          mnem='std',  sig='10q0qq1rrrrr1qqq', op_order='qr'),
     InstructionData(name='STD_z',          mnem='std',  sig='10q0qq1rrrrr0qqq', op_order='qr'),
 
-    InstructionData(name='STS_rc',         mnem='sts',  sig='10101kkkrrrrkkkk', op_order='kr'),
+    #InstructionData(name='STS_rc',         mnem='sts',  sig='10101kkkrrrrkkkk', op_order='kr'),
+
     InstructionData(name='XCH',            mnem='xch',  sig='1001001rrrrr0100', op_order='r'),
 
     InstructionData(name='LDS',            mnem='lds',  sig='1001000ddddd0000kkkkkkkkkkkkkkkk', op_order='dk'),

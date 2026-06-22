@@ -89,7 +89,10 @@ class Instruction:
                 case OpType.ADDR_IMM:
                     match len(idx):
                         case 7:
-                            value = (op.u * 2) if 0 <= op.u <= ((2 ** len(idx)) - 1) else None
+                                #if '_rc' in insn.name:
+                                #    value = op.u if 0 <= op.u <= 127 else None
+                                #else:
+                                    value = (op.u * 2) if 0 <= op.u <= ((2 ** len(idx)) - 1) else None
                         case 12:
                             value = (op.i * 2) if (-1 * (2 ** 11)) < op.i < (2 ** 11) else None
                         case 16:
