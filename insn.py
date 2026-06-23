@@ -67,33 +67,54 @@ class Instruction:
 
     @classmethod
     def decode(cls, data: bytes) -> Self:
-        data: Tibs = Tibs.from_bytes(data).byte_swapped(2)
+        if len(data) < 2:
+            raise ValueError('Data is too small to contain instruction')
+
         for insn in Instructions:
             mask, val = insn.maskval
-            if len(data) != len(mask):
+
+            if (len(mask) == 32) and (len(data) >= 4):
+                single: Tibs = Tibs.from_bytes(data[:4]).byte_swapped(2)
+            elif (len(mask) == 16) and (len(data) >= 2):
+                single: Tibs = Tibs.from_bytes(data[:2]).byte_swapped(2)
+            else:
                 continue
 
-            if (data & mask) != val:
+            if (single & mask) != val:
                 continue
 
             operands = list()
             for arg in insn.op_order:
-                idx = [i for i, o in enumerate(insn.sig) if o == arg]
+                if insn.name == 'CLR':
+                    if len(operands) == 0:
+                        idx = [6, 12, 13, 14, 15]
+                    else:
+                        idx = [7, 8, 9, 10, 11]
+                else:
+                    idx = [i for i, o in enumerate(insn.sig) if o == arg]
 
-                op = Tibs(data[i] for i in idx)
+                op = Tibs(single[i] for i in idx)
                 op_type = OpType(arg)
                 value = None
                 match op_type:
                     case OpType.REG_DST | OpType.REG_SRC:
                         match len(idx):
                             case 2:
-                                value = op.u if 0 <= op.u <= 4 else None
+                                match op.u:
+                                    case 0:
+                                        value = 24
+                                    case 1:
+                                        value = 26
+                                    case 2:
+                                        value = 28
+                                    case 3:
+                                        value = 30
                             case 3:
-                                value = op.u if 16 <= op.u <= 23 else None
+                                value = (op.u + 0x10) if 0 <= op.u <= 0x7 else None
                             case 4:
-                                value = op.u if 16 <= op.u <= 31 else None
+                                value = (op.u + 0x10) if 0 <= op.u <= 0xF else None
                             case 5:
-                                value = op.u if 0 <= op.u <= 31 else None
+                                value = op.u if 0 <= op.u <= 0x1F else None
 
                     case OpType.BIT_REG | OpType.BIT_SREG:
                         value = op.u if 0 <= op.u <= 7 else None
@@ -126,6 +147,6 @@ class Instruction:
 
                 operands.append(Operand(op_type=op_type, value=value, index=idx))
 
-            return cls(data.to_bytes(), idata=insn, operands=operands)
+            return cls(single.to_bytes(), idata=insn, operands=operands)
 
         raise ValueError('No valid instruction found in data')
