@@ -7,6 +7,7 @@ ignore = ["E402", "E722", "E731", "F401"]
 
 [tool.ruff.format]
 quote-style = "single"
+exclude = ["insns"]
 
 [tool.ty.rules]
 invalid-argument-type = "ignore"
