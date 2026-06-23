@@ -3,10 +3,11 @@ from binaryninja import (
     InstructionInfo,
     InstructionTextToken,
     InstructionTextTokenType,
+    LowLevelILFunction,
     RegisterInfo,
 )
 
-from . import Instruction, OpType
+from .insn import Instruction, OpType
 
 
 class AVRArch(Architecture):
@@ -58,13 +59,20 @@ class AVRArch(Architecture):
     stack_pointer = 'sp'
 
     def get_instruction_info(self, data: bytes, addr: int) -> InstructionInfo | None:
-        insn = Instruction.decode(data)
-        return InstructionInfo(len(insn.data))
+        try:
+            insn = Instruction.decode(data)
+            return InstructionInfo(len(insn.data))
+        except ValueError:
+            return None
 
     def get_instruction_text(
         self, data: bytes, addr: int
     ) -> tuple[list[InstructionTextToken], int] | None:
-        insn = Instruction.decode(data)
+        try:
+            insn = Instruction.decode(data)
+        except ValueError:
+            return None
+
         tokens = [
             InstructionTextToken(InstructionTextTokenType.InstructionToken, insn.mnem),
             InstructionTextToken(InstructionTextTokenType.TextToken, ' '),
@@ -100,7 +108,9 @@ class AVRArch(Architecture):
                     )
                     tokens.append(
                         InstructionTextToken(
-                            InstructionTextTokenType.IntegerToken, op.value, op.value
+                            InstructionTextTokenType.IntegerToken,
+                            str(op.value),
+                            op.value,
                         )
                     )
                 case OpType.ADDR_IMM:
@@ -116,10 +126,18 @@ class AVRArch(Architecture):
                         tokens.append(
                             InstructionTextToken(
                                 InstructionTextTokenType.AddressDisplayToken,
-                                op.value,
+                                hex(op.value),
                                 op.value,
                             )
                         )
+                case OpType.ADDR_IO:
+                    tokens.append(
+                        InstructionTextToken(
+                            InstructionTextTokenType.AddressDisplayToken,
+                            hex(op.value),
+                            op.value,
+                        )
+                    )
 
             if op != insn.operands[-1]:
                 tokens.append(
@@ -129,3 +147,8 @@ class AVRArch(Architecture):
                 )
 
         return (tokens, len(insn.data))
+
+    def get_instruction_low_level_il(
+        self, data: bytes, addr: int, il: LowLevelILFunction
+    ) -> int | None:
+        return None
