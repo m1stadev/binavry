@@ -1,5 +1,5 @@
 from .arch import AVRArch
-from .insn import Instruction, Operand, OpType
+from .view import AVRView
 
-
-# AVRArch.register()
+AVRArch.register()
+AVRView.register()
