@@ -70,7 +70,11 @@ class Instruction:
         if len(data) < 2:
             raise ValueError('Data is too small to contain instruction')
 
-        for insn in Instructions:
+        for insn in sorted(
+            [insn.value for insn in Instructions],
+            key=lambda i: len(i.sig),
+            reverse=True,
+        ):
             mask, val = insn.maskval
 
             if (len(mask) == 32) and (len(data) >= 4):

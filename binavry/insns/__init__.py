@@ -1,6 +1,8 @@
 from dataclasses import dataclass
+from enum import Enum
 from functools import cached_property
 
+from frozendict import frozendict
 from tibs import Tibs
 
 
@@ -28,19 +30,88 @@ from .data import _DATA_INSNS
 from .flow import _FLOW_INSNS
 from .logic import _LOGIC_INSNS
 
-Instructions = tuple(
-    sorted(
-        [
-            i
-            for i in (
-                *_BIT_INSNS,
-                *_CTRL_INSNS,
-                *_DATA_INSNS,
-                *_FLOW_INSNS,
-                *_LOGIC_INSNS,
-            )
-        ],
-        key=lambda i: len(i.sig),
-        reverse=True,
-    )
+
+class _InstructionsEnum:
+    def __eq__(self, other) -> bool:
+        if isinstance(other, InstructionData):
+            return getattr(self, 'value') == other
+
+        return False
+
+    def __hash__(self):
+        return hash(getattr(self, '_name_'))
+
+
+Instructions = Enum(
+    value='Instructions',
+    names=[
+        (insn.name, insn)
+        for insn in (
+            *_BIT_INSNS,
+            *_CTRL_INSNS,
+            *_DATA_INSNS,
+            *_FLOW_INSNS,
+            *_LOGIC_INSNS,
+        )
+    ],
+    type=_InstructionsEnum,
 )
+
+ALT_INSTRUCTIONS: frozendict[Instructions, tuple[Instructions]] = frozendict(
+    {
+        Instructions.ADC: (Instructions.ROL,),
+        Instructions.ADD: (Instructions.LSL,),
+        Instructions.AND: (Instructions.TST,),
+        Instructions.ANDI: (Instructions.CBR,),
+        Instructions.BRBC: (
+            Instructions.BRCC,
+            Instructions.BRGE,
+            Instructions.BRHC,
+            Instructions.BRID,
+            Instructions.BRNE,
+            Instructions.BRPL,
+            Instructions.BRSH,
+            Instructions.BRTC,
+            Instructions.BRVC,
+        ),
+        Instructions.BRBS: (
+            Instructions.BRCS,
+            Instructions.BREQ,
+            Instructions.BRHS,
+            Instructions.BRIE,
+            Instructions.BRLO,
+            Instructions.BRLT,
+            Instructions.BRMI,
+            Instructions.BRTS,
+            Instructions.BRVS,
+        ),
+        Instructions.BCLR: (
+            Instructions.CLC,
+            Instructions.CLH,
+            Instructions.CLI,
+            Instructions.CLN,
+            Instructions.CLS,
+            Instructions.CLT,
+            Instructions.CLV,
+            Instructions.CLZ,
+        ),
+        Instructions.BSET: (
+            Instructions.SEC,
+            Instructions.SEH,
+            Instructions.SEN,
+            Instructions.SES,
+            Instructions.SET,
+            Instructions.SEV,
+            Instructions.SEZ,
+        ),
+        Instructions.EOR: (Instructions.CLR,),
+        Instructions.LDI: (Instructions.SER,),
+        Instructions.ORI: (Instructions.SBR,),
+    }
+)  # ty:ignore[invalid-assignment]
+
+
+def get_base_insn(insn: InstructionData) -> InstructionData | None:
+    for base, alts in ALT_INSTRUCTIONS.items():
+        if any(insn == alt for alt in alts):
+            return base.value

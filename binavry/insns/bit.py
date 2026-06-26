@@ -15,7 +15,9 @@ _BIT_INSNS = (
     InstructionData(name='CLT',  mnem='clt',  sig='1001010011101000'),
     InstructionData(name='CLV',  mnem='clv',  sig='1001010010111000'),
     InstructionData(name='CLZ',  mnem='clz',  sig='1001010010011000'),
+    InstructionData(name='LSL',  mnem='lsl',  sig='000011rdddddrrrr', op_order='dr'),
     InstructionData(name='LSR',  mnem='lsr',  sig='1001010ddddd0110', op_order='d'),
+    InstructionData(name='ROL',  mnem='rol',  sig='000111rdddddrrrr', op_order='dr'),
     InstructionData(name='ROR',  mnem='ror',  sig='1001010ddddd0111', op_order='d'),
     InstructionData(name='SBI',  mnem='sbi',  sig='10011010AAAAAbbb', op_order='Ab'),
     InstructionData(name='SEC',  mnem='sec',  sig='1001010000001000'),
@@ -27,8 +29,4 @@ _BIT_INSNS = (
     InstructionData(name='SEV',  mnem='sev',  sig='1001010000111000'),
     InstructionData(name='SEZ',  mnem='sez',  sig='1001010000011000'),
     InstructionData(name='SWAP', mnem='swap', sig='1001010ddddd0010', op_order='d'),
-
-    #TODO: Handle LSL/ROL properly
-    #InstructionData(name='LSL',  mnem='lsl',  sig='000011dddddddddd', op_order='dd'),
-    #InstructionData(name='ROL',  mnem='rol',  sig='000111dddddddddd', op_order='dd'),
     )

@@ -6,7 +6,6 @@ _LOGIC_INSNS = (
     InstructionData(name='ADIW',   mnem='adiw',   sig='10010110KKddKKKK', op_order='dK'),
     InstructionData(name='AND',    mnem='and',    sig='001000rdddddrrrr', op_order='dr'),
     InstructionData(name='ANDI',   mnem='andi',   sig='0111KKKKddddKKKK', op_order='dK'),
-    #TODO: Handle CBR properly
     InstructionData(name='CBR',    mnem='cbr',    sig='0111KKKKddddKKKK', op_order='dK'),
     InstructionData(name='CLR',    mnem='clr',    sig='001001dddddddddd', op_order='d'),
     InstructionData(name='COM',    mnem='com',    sig='1001010ddddd0000', op_order='d'),
