@@ -36,7 +36,7 @@ class AVRView(BinaryView):
 
     def init(self) -> bool:
         self.arch = Architecture['AVR']
-        self.platform = self.arch.standalone_platform
+        self.platform = self.arch.standalone_platform  # ty:ignore[unresolved-attribute]
         # ROM
         self.add_auto_segment(
             start=0,

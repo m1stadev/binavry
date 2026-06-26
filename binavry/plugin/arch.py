@@ -1,5 +1,6 @@
 from binaryninja import (
     Architecture,
+    BranchType,
     InstructionInfo,
     InstructionTextToken,
     InstructionTextTokenType,
@@ -61,9 +62,32 @@ class AVRArch(Architecture):
     def get_instruction_info(self, data: bytes, addr: int) -> InstructionInfo | None:
         try:
             insn = Instruction.decode(data)
-            return InstructionInfo(len(insn.data))
         except ValueError:
             return None
+
+        info = InstructionInfo(len(insn.data))
+        idata = Instructions(get_base_insn(insn.idata) or insn.idata)
+
+        match idata:
+            case Instructions.CALL:
+                info.add_branch(BranchType.CallDestination, insn.operands[0].value)
+            case Instructions.RCALL:
+                info.add_branch(
+                    BranchType.CallDestination, (addr + insn.operands[0].value)
+                )
+            case Instructions.JMP:
+                info.add_branch(BranchType.UnconditionalBranch, insn.operands[0].value)
+            case Instructions.RJMP:
+                info.add_branch(
+                    BranchType.UnconditionalBranch, (addr + insn.operands[0].value)
+                )
+            case Instructions.BRBC | Instructions.BRBS:
+                info.add_branch(BranchType.TrueBranch, insn.operands[-1].value)
+                info.add_branch(BranchType.FalseBranch, (addr + info.length))
+            case Instructions.RET | Instructions.RETI:
+                info.add_branch(BranchType.FunctionReturn)
+
+        return info
 
     def get_instruction_text(
         self, data: bytes, addr: int
@@ -135,6 +159,14 @@ class AVRArch(Architecture):
                         InstructionTextToken(
                             InstructionTextTokenType.AddressDisplayToken,
                             hex(op.value),
+                            op.value,
+                        )
+                    )
+                case OpType.BIT_REG | OpType.BIT_SREG:
+                    tokens.append(
+                        InstructionTextToken(
+                            InstructionTextTokenType.IntegerToken,
+                            str(op.value),
                             op.value,
                         )
                     )
