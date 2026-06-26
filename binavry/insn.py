@@ -129,9 +129,13 @@ class Instruction:
                                 # if '_rc' in insn.name:
                                 #    value = op.u if 0 <= op.u <= 127 else None
                                 # else:
-                                value = (op.i * 2) if -0x40 <= op.i < 0x40 else None
+                                value = (
+                                    ((op.i + 1) * 2) if -0x40 <= op.i < 0x40 else None
+                                )
                             case 12:
-                                value = (op.i * 2) if -0x800 <= op.i < 0x800 else None
+                                value = (
+                                    ((op.i + 1) * 2) if -0x800 <= op.i < 0x800 else None
+                                )
                             case 16:
                                 value = (op.u * 2) if 0 < op.u <= 0x7FFF else None
                             case 22:
