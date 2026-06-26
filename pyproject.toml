@@ -1,3 +1,36 @@
+[project]
+name = "binavry"
+dynamic = ["version"]
+description = "(WIP) AVR support for Binary Ninja"
+authors = [{ name = "m1stadev", email = "adamhamdi31@gmail.com" }]
+license = { file = "LICENSE" }
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "tibs>=0.10.0"
+]
+
+[project.urls]
+source = "https://github.com/m1stadev/binavry"
+issues = "https://github.com/m1stadev/binavry/issues"
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.1.0",
+]
+
+[build-system]
+requires = ["hatchling", "uv-dynamic-versioning"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
+
+[tool.poetry-dynamic-versioning]
+vcs = "git"
+style = "semver"
+dirty = true
+
 [tool.ruff]
 target-version = "py311"
 
@@ -6,8 +39,8 @@ extend-select = ["I"]
 ignore = ["E402", "E722", "E731", "F401"]
 
 [tool.ruff.format]
+exclude = ["binavry/insns/bit.py", "binavry/insns/ctrl.py", "binavry/insns/data.py", "binavry/insns/flow.py", "binavry/insns/logic.py"]
 quote-style = "single"
-exclude = ["insns"]
 
 [tool.ty.rules]
 invalid-argument-type = "ignore"

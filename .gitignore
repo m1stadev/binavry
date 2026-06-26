@@ -13,5 +13,4 @@ wheels/
 notes.md
 .vscode/
 *.bin
-uv.lock
 test_*.py

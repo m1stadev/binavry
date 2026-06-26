@@ -1,5 +1,4 @@
-from .arch import AVRArch
-from .view import AVRView
+from .binavry.plugin import AVRArch, AVRView
 
 AVRArch.register()
 AVRView.register()

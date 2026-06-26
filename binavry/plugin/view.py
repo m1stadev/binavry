@@ -1,8 +1,8 @@
 from binaryninja import Architecture, BinaryView, SegmentFlag
 from tibs import Tibs
 
-from . import AVRArch
-from .insn import Instruction
+from . import Instruction
+from .arch import AVRArch
 
 
 class AVRView(BinaryView):

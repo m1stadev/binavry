@@ -7,7 +7,7 @@ from binaryninja import (
     RegisterInfo,
 )
 
-from .insn import Instruction, OpType
+from . import Instruction, Instructions, OpType, get_base_insn
 
 
 class AVRArch(Architecture):
