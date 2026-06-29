@@ -7,7 +7,7 @@ _LOGIC_INSNS = (
     InstructionData(name='AND',    mnem='and',    sig='001000rdddddrrrr', op_order='dr'),
     InstructionData(name='ANDI',   mnem='andi',   sig='0111KKKKddddKKKK', op_order='dK'),
     InstructionData(name='CBR',    mnem='cbr',    sig='0111KKKKddddKKKK', op_order='dK'),
-    InstructionData(name='CLR',    mnem='clr',    sig='001001dddddddddd', op_order='d'),
+    InstructionData(name='CLR',    mnem='clr',    sig='001001rdddddrrrr', op_order='dr'),
     InstructionData(name='COM',    mnem='com',    sig='1001010ddddd0000', op_order='d'),
     InstructionData(name='DEC',    mnem='dec',    sig='1001010ddddd1010', op_order='d'),
     InstructionData(name='DES',    mnem='des',    sig='10010100KKKK1011', op_order='K'),
@@ -29,5 +29,5 @@ _LOGIC_INSNS = (
     InstructionData(name='SER',    mnem='ser',    sig='11101111dddd1111', op_order='d'),
     InstructionData(name='SUB',    mnem='sub',    sig='000110rdddddrrrr', op_order='dr'),
     InstructionData(name='SUBI',   mnem='subi',   sig='0101KKKKddddKKKK', op_order='dK'),
-    InstructionData(name='TST',    mnem='tst',    sig='001000dddddddddd', op_order='d')
+    InstructionData(name='TST',    mnem='tst',    sig='001000rdddddrrrr', op_order='dr')
     )

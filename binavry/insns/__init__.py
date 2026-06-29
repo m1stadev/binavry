@@ -64,7 +64,7 @@ ALT_INSTRUCTIONS: frozendict[Instructions, tuple[Instructions]] = frozendict(
         Instructions.ADC: (Instructions.ROL,),
         Instructions.ADD: (Instructions.LSL,),
         Instructions.AND: (Instructions.TST,),
-        Instructions.ANDI: (Instructions.CBR,),
+        # Instructions.ANDI: (Instructions.CBR,),
         Instructions.BRBC: (
             Instructions.BRCC,
             Instructions.BRGE,
@@ -107,13 +107,13 @@ ALT_INSTRUCTIONS: frozendict[Instructions, tuple[Instructions]] = frozendict(
             Instructions.SEZ,
         ),
         Instructions.EOR: (Instructions.CLR,),
-        Instructions.LDI: (Instructions.SER,),
-        Instructions.ORI: (Instructions.SBR,),
+        # Instructions.LDI: (Instructions.SER,),
+        # Instructions.ORI: (Instructions.SBR,),
     }
 )  # ty:ignore[invalid-assignment]
 
 
 def get_base_insn(insn: InstructionData) -> InstructionData | None:
     for base, alts in ALT_INSTRUCTIONS.items():
-        if any(insn == alt for alt in alts):
+        if (insn == base) or any(insn == alt for alt in alts):
             return base.value
