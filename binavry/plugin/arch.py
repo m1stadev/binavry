@@ -54,10 +54,11 @@ class AVRArch(Architecture):
         'Z': RegisterInfo('Z', 2),
         'r30': RegisterInfo('Z', 1, 0),
         'r31': RegisterInfo('Z', 1, 1),
+        'SP': RegisterInfo('SP', 2),
     }
 
     global_regs = ['r0', 'r1']
-    stack_pointer = 'sp'
+    stack_pointer = 'SP'
 
     def get_instruction_info(self, data: bytes, addr: int) -> InstructionInfo | None:
         try:
@@ -66,9 +67,8 @@ class AVRArch(Architecture):
             return None
 
         info = InstructionInfo(len(insn.data))
-        idata = Instructions(get_base_insn(insn.idata) or insn.idata)
 
-        match idata:
+        match Instructions(get_base_insn(insn.idata) or insn.idata):
             case Instructions.CALL:
                 info.add_branch(BranchType.CallDestination, insn.operands[0].value)
             case Instructions.RCALL:
@@ -82,10 +82,17 @@ class AVRArch(Architecture):
                     BranchType.UnconditionalBranch, (addr + insn.operands[0].value)
                 )
             case Instructions.BRBC | Instructions.BRBS:
-                info.add_branch(BranchType.TrueBranch, insn.operands[-1].value)
-                info.add_branch(BranchType.FalseBranch, (addr + info.length))
+                info.add_branch(BranchType.TrueBranch, (addr + insn.operands[-1].value))
+                info.add_branch(BranchType.FalseBranch, (addr + 2))
             case Instructions.RET | Instructions.RETI:
                 info.add_branch(BranchType.FunctionReturn)
+            case (
+                Instructions.EICALL
+                | Instructions.EIJMP
+                | Instructions.ICALL
+                | Instructions.IJMP
+            ):
+                info.add_branch(BranchType.IndirectBranch)
 
         return info
 
