@@ -18,6 +18,16 @@ class OpType(StrEnum):
     REG_DST = 'd'
     REG_SRC = 'r'
 
+    REG_X = 'x'
+    REG_XDEC = 'xdec'
+    REG_XINC = 'xinc'
+    REG_Y = 'y'
+    REG_YDEC = 'ydec'
+    REG_YINC = 'yinc'
+    REG_Z = 'z'
+    REG_ZDEC = 'zdec'
+    REG_ZINC = 'zinc'
+
     IMM = 'K'
 
     BIT_REG = 'b'
@@ -133,6 +143,41 @@ class Instruction:
                 raise ValueError(f'Different registers cannot be passed to {insn.name}')
 
             operands.pop(-1)
+
+        if '_' in insn.name:
+            op_type = OpType(insn.name.split('_')[-1])
+            match insn.mnem:
+                case 'ld' | 'lpm' | 'elpm':
+                    idx = -1
+
+                case 'st':
+                    idx = 0
+
+                case 'std':
+                    idx = 1
+
+                case 'ldd':
+                    idx = -2
+
+            match op_type:
+                case OpType.REG_XINC | OpType.REG_YINC | OpType.REG_ZINC:
+                    value = 1
+
+                case OpType.REG_XDEC | OpType.REG_YDEC | OpType.REG_ZDEC:
+                    value = -1
+
+                case OpType.REG_X | OpType.REG_Y | OpType.REG_Z:
+                    op = next(
+                        (op for op in operands if op.op_type == OpType.ADDR_DIS), None
+                    )
+                    if op is not None:
+                        value = op.value
+                        operands.remove(op)
+                    else:
+                        value = 0
+
+            operands.insert(idx, Operand(op_type, value, [-1]))
+
         return tuple(operands)
 
     @classmethod
