@@ -115,6 +115,29 @@ class AVRArch(Architecture):
             InstructionTextToken(InstructionTextTokenType.TextToken, ' '),
         ]
 
+        static_arg = any(
+            op
+            for op in insn.operands
+            if op.op_type
+            in (
+                OpType.REG_X,
+                OpType.REG_XDEC,
+                OpType.REG_XINC,
+                OpType.REG_Y,
+                OpType.REG_YDEC,
+                OpType.REG_YINC,
+                OpType.REG_Z,
+                OpType.REG_ZDEC,
+                OpType.REG_ZINC,
+            )
+        )
+        if static_arg is True:
+            tokens.append(
+                InstructionTextToken(
+                    InstructionTextTokenType.BeginMemoryOperandToken, '['
+                )
+            )
+
         for op in insn.operands:
             match op.op_type:
                 case OpType.REG_DST | OpType.REG_SRC:
@@ -190,10 +213,73 @@ class AVRArch(Architecture):
                         )
                     )
 
+                case _:
+                    match op.op_type:
+                        case OpType.REG_XINC | OpType.REG_YINC | OpType.REG_ZINC:
+                            tokens += [
+                                InstructionTextToken(
+                                    InstructionTextTokenType.RegisterToken,
+                                    op.op_type.value[0].upper(),
+                                ),
+                                InstructionTextToken(
+                                    InstructionTextTokenType.OperationToken, '+'
+                                ),
+                            ]
+
+                        case OpType.REG_XDEC | OpType.REG_YDEC | OpType.REG_ZDEC:
+                            tokens += [
+                                InstructionTextToken(
+                                    InstructionTextTokenType.OperationToken, '-'
+                                ),
+                                InstructionTextToken(
+                                    InstructionTextTokenType.RegisterToken,
+                                    op.op_type.value[0].upper(),
+                                ),
+                            ]
+
+                        case OpType.REG_X | OpType.REG_Y | OpType.REG_Z:
+                            tokens.append(
+                                InstructionTextToken(
+                                    InstructionTextTokenType.RegisterToken,
+                                    op.op_type.value[0].upper(),
+                                )
+                            )
+                            match op.value:
+                                case op.value if op.value < 0:
+                                    tokens += [
+                                        InstructionTextToken(
+                                            InstructionTextTokenType.OperationToken, '-'
+                                        ),
+                                        InstructionTextToken(
+                                            InstructionTextTokenType.IntegerToken,
+                                            str(op.value),
+                                            op.value,
+                                        ),
+                                    ]
+
+                                case op.value if op.value > 0:
+                                    tokens += [
+                                        InstructionTextToken(
+                                            InstructionTextTokenType.OperationToken, '+'
+                                        ),
+                                        InstructionTextToken(
+                                            InstructionTextTokenType.IntegerToken,
+                                            str(op.value),
+                                            op.value,
+                                        ),
+                                    ]
+
             if op != insn.operands[-1]:
                 tokens.append(
                     InstructionTextToken(
                         InstructionTextTokenType.OperandSeparatorToken, ', '
+                    )
+                )
+
+            elif static_arg:
+                tokens.append(
+                    InstructionTextToken(
+                        InstructionTextTokenType.EndMemoryOperandToken, ']'
                     )
                 )
 
