@@ -71,21 +71,27 @@ class AVRArch(Architecture):
         match Instructions(get_base_insn(insn.idata) or insn.idata):
             case Instructions.CALL:
                 info.add_branch(BranchType.CallDestination, insn.operands[0].value)
+
             case Instructions.RCALL:
                 info.add_branch(
                     BranchType.CallDestination, (addr + insn.operands[0].value)
                 )
+
             case Instructions.JMP:
                 info.add_branch(BranchType.UnconditionalBranch, insn.operands[0].value)
+
             case Instructions.RJMP:
                 info.add_branch(
                     BranchType.UnconditionalBranch, (addr + insn.operands[0].value)
                 )
+
             case Instructions.BRBC | Instructions.BRBS:
                 info.add_branch(BranchType.TrueBranch, (addr + insn.operands[-1].value))
                 info.add_branch(BranchType.FalseBranch, (addr + 2))
+
             case Instructions.RET | Instructions.RETI:
                 info.add_branch(BranchType.FunctionReturn)
+
             case (
                 Instructions.EICALL
                 | Instructions.EIJMP
@@ -117,6 +123,7 @@ class AVRArch(Architecture):
                             InstructionTextTokenType.RegisterToken, f'r{op.value}'
                         )
                     )
+
                 case OpType.IMM:
                     tokens.append(
                         InstructionTextToken(
@@ -125,6 +132,7 @@ class AVRArch(Architecture):
                             op.value,
                         )
                     )
+
                 case OpType.ADDR_DIS:
                     tokens.append(
                         InstructionTextToken(
@@ -144,6 +152,7 @@ class AVRArch(Architecture):
                             op.value,
                         )
                     )
+
                 case OpType.ADDR_IMM:
                     if len(op.index) in (7, 12):
                         tokens.append(
@@ -153,6 +162,7 @@ class AVRArch(Architecture):
                                 addr + op.value,
                             )
                         )
+
                     else:
                         tokens.append(
                             InstructionTextToken(
@@ -161,6 +171,7 @@ class AVRArch(Architecture):
                                 op.value,
                             )
                         )
+
                 case OpType.ADDR_IO:
                     tokens.append(
                         InstructionTextToken(
@@ -169,6 +180,7 @@ class AVRArch(Architecture):
                             op.value,
                         )
                     )
+
                 case OpType.BIT_REG | OpType.BIT_SREG:
                     tokens.append(
                         InstructionTextToken(

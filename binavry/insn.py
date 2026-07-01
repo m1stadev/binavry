@@ -11,7 +11,7 @@ from .insns import ALT_INSTRUCTIONS, InstructionData, Instructions, get_base_ins
 class Operand:
     op_type: 'OpType'
     value: int
-    index: tuple[int, ...]
+    index: list[int]
 
 
 class OpType(StrEnum):
@@ -132,6 +132,7 @@ class Instruction:
             if operands[0].value != operands[1].value:
                 raise ValueError(f'Different registers cannot be passed to {insn.name}')
 
+            operands.pop(-1)
         return tuple(operands)
 
     @classmethod
@@ -148,8 +149,10 @@ class Instruction:
 
             if (len(mask) == 32) and (len(data) >= 4):
                 single: Tibs = Tibs.from_bytes(data[:4]).byte_swapped(2)
+
             elif (len(mask) == 16) and (len(data) >= 2):
                 single: Tibs = Tibs.from_bytes(data[:2]).byte_swapped(2)
+
             else:
                 continue
 
@@ -175,8 +178,10 @@ class Instruction:
 
         if (len(mask) == 32) and (len(data) >= 4):
             single: Tibs = Tibs.from_bytes(data[:4]).byte_swapped(2)
+
         elif (len(mask) == 16) and (len(data) >= 2):
             single: Tibs = Tibs.from_bytes(data[:2]).byte_swapped(2)
+
         else:
             raise ValueError('No valid instruction found in data')
 

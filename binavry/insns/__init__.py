@@ -35,6 +35,7 @@ class _InstructionsEnum:
     def __eq__(self, other) -> bool:
         if isinstance(other, InstructionData):
             return getattr(self, 'value') == other
+
         elif isinstance(other, Instructions):
             return getattr(self, 'value') == other.value
 
