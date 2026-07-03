@@ -146,19 +146,6 @@ class Instruction:
 
         if '_' in insn.name:
             op_type = OpType(insn.name.split('_')[-1])
-            match insn.mnem:
-                case 'ld' | 'lpm' | 'elpm':
-                    idx = -1
-
-                case 'st':
-                    idx = 0
-
-                case 'std':
-                    idx = 1
-
-                case 'ldd':
-                    idx = -2
-
             match op_type:
                 case OpType.REG_XINC | OpType.REG_YINC | OpType.REG_ZINC:
                     value = 1
@@ -175,6 +162,12 @@ class Instruction:
                         operands.remove(op)
                     else:
                         value = 0
+
+            if insn.mnem in ('st', 'std'):
+                idx = 0
+
+            else:
+                idx = 1
 
             operands.insert(idx, Operand(op_type, value, [-1]))
 
