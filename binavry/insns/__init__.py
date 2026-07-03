@@ -108,7 +108,7 @@ ALT_INSTRUCTIONS: frozendict[Instructions, tuple[Instructions]] = frozendict(
             Instructions.SEZ,
         ),
         Instructions.EOR: (Instructions.CLR,),
-        # Instructions.LDI: (Instructions.SER,),
+        Instructions.LDI: (Instructions.SER,),
         # Instructions.ORI: (Instructions.SBR,),
     }
 )  # ty:ignore[invalid-assignment]
