@@ -7,7 +7,11 @@ license = { file = "LICENSE" }
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "beautifulsoup4>=4.15.0",
     "frozendict>=2.4.7",
+    "lxml>=6.1.1",
+    "remotezip2>=0.0.2",
+    "requests>=2.34.2",
     "tibs>=0.10.0",
 ]
 
