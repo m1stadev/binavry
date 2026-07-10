@@ -31,7 +31,7 @@ class PackDownloader:
     def update(self) -> None:
         resp = self._session.get(PackDownloader.URL)
 
-        soup = BeautifulSoup(resp.text, 'lxml')
+        soup = BeautifulSoup(resp.text, features='xml')
         packs = soup.find(id='atmel-dfp')
         if packs is None:
             return

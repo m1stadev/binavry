@@ -14,7 +14,6 @@ class MemorySection:
 @dataclass(frozen=True)
 class MemorySegment:
     name: str
-    flags: str
     size: int
     sections: list[MemorySection]
 
@@ -57,26 +56,18 @@ class ATDeviceInfo:
         for seg in next(prop for prop in device if prop.tag == 'address-spaces'):
             sections = []
             name = seg.get('id')
-            match name:
-                case 'prog':
-                    flags = 'RX'
+            if name not in ('data', 'prog'):
+                continue
 
-                case 'data':
-                    flags = 'RW'
+            elif name == 'data':
+                for sec in seg:
+                    sec_size = sec.get('size')
+                    if 'x' in sec_size:
+                        sec_size = int(sec_size, 16)
+                    else:
+                        sec_size = int(sec_size)
 
-                    for sec in seg:
-                        sec_size = sec.get('size')
-                        if 'x' in sec_size:
-                            sec_size = int(sec_size, 16)
-                        else:
-                            sec_size = int(sec_size)
-
-                        sections.append(
-                            MemorySection(name=sec.get('name'), size=sec_size)
-                        )
-
-                case _:
-                    continue
+                    sections.append(MemorySection(name=sec.get('name'), size=sec_size))
 
             size = seg.get('size')
             if 'x' in size:
@@ -85,7 +76,7 @@ class ATDeviceInfo:
                 size = int(size)
 
             self._segments.append(
-                MemorySegment(name=name, flags=flags, size=size, sections=sections)
+                MemorySegment(name=name, size=size, sections=sections)
             )
 
     @property
