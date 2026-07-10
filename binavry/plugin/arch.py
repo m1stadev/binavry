@@ -115,29 +115,6 @@ class AVRArch(Architecture):
             InstructionTextToken(InstructionTextTokenType.TextToken, ' '),
         ]
 
-        static_arg = any(
-            op
-            for op in insn.operands
-            if op.op_type
-            in (
-                OpType.REG_X,
-                OpType.REG_XDEC,
-                OpType.REG_XINC,
-                OpType.REG_Y,
-                OpType.REG_YDEC,
-                OpType.REG_YINC,
-                OpType.REG_Z,
-                OpType.REG_ZDEC,
-                OpType.REG_ZINC,
-            )
-        )
-        if static_arg is True:
-            tokens.append(
-                InstructionTextToken(
-                    InstructionTextTokenType.BeginMemoryOperandToken, '['
-                )
-            )
-
         for op in insn.operands:
             match op.op_type:
                 case OpType.REG_DST | OpType.REG_SRC:
@@ -189,18 +166,18 @@ class AVRArch(Architecture):
                     else:
                         tokens.append(
                             InstructionTextToken(
-                                InstructionTextTokenType.AddressDisplayToken,
+                                InstructionTextTokenType.PossibleAddressToken,
                                 hex(op.value),
                                 op.value,
                             )
                         )
 
                 case OpType.ADDR_IO:
+                    # TODO: Display correct IO register names
                     tokens.append(
                         InstructionTextToken(
-                            InstructionTextTokenType.AddressDisplayToken,
+                            InstructionTextTokenType.PossibleAddressToken,
                             hex(op.value),
-                            op.value,
                         )
                     )
 
@@ -273,13 +250,6 @@ class AVRArch(Architecture):
                 tokens.append(
                     InstructionTextToken(
                         InstructionTextTokenType.OperandSeparatorToken, ', '
-                    )
-                )
-
-            elif static_arg:
-                tokens.append(
-                    InstructionTextToken(
-                        InstructionTextTokenType.EndMemoryOperandToken, ']'
                     )
                 )
 
