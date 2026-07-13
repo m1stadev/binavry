@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from enum import StrEnum
+from functools import lru_cache
 from typing import Self
 
 from tibs import Tibs
@@ -174,6 +175,7 @@ class Instruction:
         return tuple(operands)
 
     @classmethod
+    @lru_cache
     def decode(cls, data: bytes) -> Self:
         if len(data) < 2:
             raise ValueError('Data is too small to contain instruction')
