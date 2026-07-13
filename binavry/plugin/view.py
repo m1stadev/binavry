@@ -1,8 +1,17 @@
-from binaryninja import Architecture, BinaryView, SegmentFlag
+from binaryninja import (
+    Architecture,
+    BinaryView,
+    RegisterInfo,
+    SectionSemantics,
+    SegmentFlag,
+    Symbol,
+    SymbolType,
+)
 from tibs import Tibs
 
 from . import Instruction
 from .arch import AVRArch
+from .atpack import PackDownloader
 
 
 class AVRView(BinaryView):
@@ -13,6 +22,10 @@ class AVRView(BinaryView):
         super().__init__(file_metadata=data.file, parent_view=data)
 
         self.data = data
+        self._packdownloader = PackDownloader()
+        # TODO: Implement a UI window for searching device info
+        self._packdownloader.update()
+        self._device_info = None
 
     @classmethod
     def is_valid_for_data(self, data) -> bool:
@@ -34,38 +47,77 @@ class AVRView(BinaryView):
 
         return False
 
+    @property
+    def device_info(self):
+        return self._device_info
+
     def init(self) -> bool:
         self.arch = Architecture['AVR']
         self.platform = self.arch.standalone_platform  # ty:ignore[unresolved-attribute]
+
+        # TODO: Implement setting for choosing device
+        self._device_info = next(
+            pack for pack in self._packdownloader.packs if pack.device == 'AT90CAN64'
+        ).device_info
+
+        rom = next(seg for seg in self.device_info.segments if seg.name == 'prog')
+
+        if self.data.length > rom.size:
+            raise ValueError('Binary too large for device flash')
+
         # ROM
         self.add_auto_segment(
             start=0,
-            length=0x10000,
+            length=rom.size,
             data_offset=0,
             data_length=self.data.length,
             flags=SegmentFlag.SegmentReadable | SegmentFlag.SegmentExecutable,
         )
-        # self.add_auto_section('ROM', 0, 0x10000)
 
-        # Registers
+        self.add_auto_section(
+            'ROM', 0, rom.size, SectionSemantics.ReadOnlyCodeSectionSemantics
+        )
+
+        start = 0
+        for irq in self.device_info.interrupts:
+            self.define_auto_symbol_and_var_or_function(
+                Symbol(SymbolType.FunctionSymbol, start, irq)
+            )
+            if irq == 'RESET':
+                self.add_entry_point(start)
+            else:
+                self.add_function(start)
+
+            start += 4
+
+        ram = next(seg for seg in self.device_info.segments if seg.name == 'data')
         self.add_auto_segment(
-            start=0x10000,
-            length=0x100,
-            data_offset=0x10000,
+            start=rom.size,
+            length=ram.size,
+            data_offset=0,
             data_length=0,
             flags=SegmentFlag.SegmentReadable | SegmentFlag.SegmentWritable,
         )
-        # self.add_auto_section('REG', 0x10000, 0x100)
 
-        # RAM
-        self.add_auto_segment(
-            start=0x10100,
-            length=0x1000,
-            data_offset=0x10000,
-            data_length=0,
-            flags=SegmentFlag.SegmentReadable | SegmentFlag.SegmentWritable,
+        self.add_auto_section(
+            'RAM', rom.size, ram.size, SectionSemantics.ReadWriteDataSectionSemantics
         )
-        # self.add_auto_section('RAM', 0x10100, 0x1000)
+
+        start = 0
+        for sec in ram.sections:
+            self.add_auto_section(
+                name=sec.name,
+                start=rom.size + start,
+                length=sec.size,
+                semantics=SectionSemantics.ReadWriteDataSectionSemantics,
+            )
+            start += sec.size
+
+        for reg in sorted(self.device_info.registers, key=lambda r: r.offset):
+            self.define_auto_symbol_and_var_or_function(
+                Symbol(SymbolType.DataSymbol, rom.size + reg.offset, reg.name)
+            )
+            # self.arch.regs[reg.name] = RegisterInfo(reg.name, reg.size)
 
         return True
 
@@ -76,4 +128,11 @@ class AVRView(BinaryView):
         return AVRArch.address_size
 
     def perform_get_entry_point(self) -> int:
-        return 0x0
+        return (
+            next(
+                self.device_info.interrupts.index(i)
+                for i in self.device_info.interrupts
+                if i == 'RESET'
+            )
+            * 4
+        )
