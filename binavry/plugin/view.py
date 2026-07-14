@@ -57,7 +57,7 @@ class AVRView(BinaryView):
 
         # TODO: Implement setting for choosing device
         self._device_info = next(
-            pack for pack in self._packdownloader.packs if pack.device == 'AT90CAN64'
+            pack for pack in self._packdownloader.packs if pack.device == 'ATmega328P'
         ).device_info
 
         rom = next(seg for seg in self.device_info.segments if seg.name == 'prog')
