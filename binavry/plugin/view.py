@@ -85,8 +85,11 @@ class AVRView(BinaryView):
             )
             if irq == 'RESET':
                 self.add_entry_point(start)
+                func = self.get_function_at(start)
             else:
-                self.add_function(start)
+                func = self.add_function(start)
+
+            func.name = irq  # ty:ignore[invalid-assignment]
 
             start += 4
 
