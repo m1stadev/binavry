@@ -1,3 +1,3 @@
-from .. import Instruction, Instructions, Operand, OpType, get_base_insn
+from .. import Instruction, Instructions, Operand, OpType
 from .arch import AVRArch
 from .view import AVRView

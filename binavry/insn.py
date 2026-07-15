@@ -5,7 +5,7 @@ from typing import Self
 
 from tibs import Tibs
 
-from .insns import ALT_INSTRUCTIONS, InstructionData, Instructions, get_base_insn
+from .insns import ALT_INSTRUCTIONS, InstructionData, Instructions
 
 
 @dataclass(frozen=True)
@@ -199,9 +199,10 @@ class Instruction:
             if (single & mask) != val:
                 continue
 
-            base = get_base_insn(insn)
-            if base is not None:
-                for alt in [alt.value for alt in ALT_INSTRUCTIONS[Instructions(base)]]:
+            if insn.base is not None:
+                for alt in [
+                    alt.value for alt in ALT_INSTRUCTIONS[Instructions(insn.base)]
+                ]:
                     try:
                         return cls.decode_as(data, alt)
                     except ValueError:

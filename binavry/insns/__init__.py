@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 from enum import Enum
 from functools import cached_property
@@ -22,6 +24,14 @@ class InstructionData:
         val = Tibs([int(c) if c.isdigit() else 0 for c in self.sig])
 
         return (mask, val)
+
+    @cached_property
+    def base(self) -> InstructionData | None:
+        base = _get_base_insn(self)
+        if base == self:
+            base = None
+
+        return base
 
 
 from .bit import _BIT_INSNS
@@ -114,7 +124,7 @@ ALT_INSTRUCTIONS: frozendict[Instructions, tuple[Instructions]] = frozendict(
 )  # ty:ignore[invalid-assignment]
 
 
-def get_base_insn(insn: InstructionData) -> InstructionData | None:
+def _get_base_insn(idata: InstructionData) -> InstructionData | None:
     for base, alts in ALT_INSTRUCTIONS.items():
-        if (insn == base) or any(insn == alt for alt in alts):
+        if (idata == base) or any(idata == alt for alt in alts):
             return base.value

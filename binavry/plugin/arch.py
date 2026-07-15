@@ -16,7 +16,7 @@ from binaryninja import (
 )
 from binaryninja.lowlevelil import ExpressionIndex
 
-from . import Instruction, Instructions, Operand, OpType, get_base_insn
+from . import Instruction, Instructions, Operand, OpType
 
 
 class AVRArch(Architecture):
@@ -98,7 +98,7 @@ class AVRArch(Architecture):
 
                 block.add_instruction_data(insn.data)
 
-                idata = Instructions(get_base_insn(insn.idata) or insn.idata)
+                idata = insn.idata.base or insn.idata
                 if idata not in (
                     Instructions.BRBC,
                     Instructions.BRBS,
@@ -202,7 +202,7 @@ class AVRArch(Architecture):
 
         info = InstructionInfo(len(insn.data))
 
-        match Instructions(get_base_insn(insn.idata) or insn.idata):
+        match Instructions(insn.idata.base or insn.idata):
             case Instructions.CALL:
                 info.add_branch(BranchType.CallDestination, insn.operands[0].value)
 
