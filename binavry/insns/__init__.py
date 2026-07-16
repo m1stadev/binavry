@@ -27,11 +27,11 @@ class InstructionData:
 
     @cached_property
     def base(self) -> InstructionData | None:
-        base = _get_base_insn(self)
-        if base == self:
-            base = None
+        return _get_base_insn(self)
 
-        return base
+    @cached_property
+    def is_base(self) -> bool:
+        return _is_base(self)
 
 
 from .bit import _BIT_INSNS
@@ -126,5 +126,9 @@ ALT_INSTRUCTIONS: frozendict[Instructions, tuple[Instructions]] = frozendict(
 
 def _get_base_insn(idata: InstructionData) -> InstructionData | None:
     for base, alts in ALT_INSTRUCTIONS.items():
-        if (idata == base) or any(idata == alt for alt in alts):
+        if any(idata == alt for alt in alts):
             return base.value
+
+
+def _is_base(idata: InstructionData) -> bool:
+    return Instructions(idata) in ALT_INSTRUCTIONS.keys()
