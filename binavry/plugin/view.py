@@ -63,7 +63,9 @@ class AVRView(BinaryView):
         rom = next(seg for seg in self.device_info.segments if seg.name == 'prog')
 
         if self.data.length > rom.size:
-            raise ValueError('Binary too large for device flash')
+            raise ValueError(
+                f'Binary too large for device flash: {self.device_info.name}'
+            )
 
         # ROM
         self.add_auto_segment(
@@ -117,9 +119,23 @@ class AVRView(BinaryView):
             start += sec.size
 
         for reg in sorted(self.device_info.registers, key=lambda r: r.offset):
-            self.define_auto_symbol_and_var_or_function(
-                Symbol(SymbolType.DataSymbol, rom.size + reg.offset, reg.name)
-            )
+            if reg.size == 2:
+                self.define_auto_symbol_and_var_or_function(
+                    Symbol(
+                        SymbolType.DataSymbol, rom.size + reg.offset, (reg.name + 'L')
+                    )
+                )
+                self.define_auto_symbol_and_var_or_function(
+                    Symbol(
+                        SymbolType.DataSymbol,
+                        rom.size + reg.offset + 1,
+                        (reg.name + 'H'),
+                    )
+                )
+            else:
+                self.define_auto_symbol_and_var_or_function(
+                    Symbol(SymbolType.DataSymbol, rom.size + reg.offset, reg.name)
+                )
             # self.arch.regs[reg.name] = RegisterInfo(reg.name, reg.size)
 
         return True

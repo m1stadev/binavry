@@ -119,15 +119,9 @@ class AVRArch(Architecture):
                                 io_offset + op.value + 0x20,
                                 namespace=SymbolType.DataSymbol,
                             )
-                            if io_reg is None:
-                                # Wide register?
-                                io_reg = data.get_symbol_at(
-                                    io_offset + op.value + 0x19,
-                                    namespace=SymbolType.DataSymbol,
-                                )
 
                             arch_context['mapped_io'][addr] = {
-                                'name': io_reg.short_name,
+                                'name': io_reg.name,
                                 'addr': io_reg.address,
                             }
 
