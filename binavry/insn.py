@@ -176,7 +176,7 @@ class Instruction:
 
     @classmethod
     @lru_cache
-    def decode(cls, data: bytes) -> Self:
+    def decode(cls, data: bytes, byte_swapped: bool = True) -> Self:
         if len(data) < 2:
             raise ValueError('Data is too small to contain instruction')
 
@@ -188,13 +188,16 @@ class Instruction:
             mask, val = insn.maskval
 
             if (len(mask) == 32) and (len(data) >= 4):
-                single: Tibs = Tibs.from_bytes(data[:4]).byte_swapped(2)
+                single: Tibs = Tibs.from_bytes(data[:4])
 
             elif (len(mask) == 16) and (len(data) >= 2):
-                single: Tibs = Tibs.from_bytes(data[:2]).byte_swapped(2)
+                single: Tibs = Tibs.from_bytes(data[:2])
 
             else:
                 continue
+
+            if byte_swapped:
+                single = single.byte_swapped(2)
 
             if (single & mask) != val:
                 continue
@@ -214,17 +217,22 @@ class Instruction:
         raise ValueError('No valid instruction found in data')
 
     @classmethod
-    def decode_as(cls, data: bytes, insn: InstructionData) -> Self:
+    def decode_as(
+        cls, data: bytes, insn: InstructionData, byte_swapped: bool = True
+    ) -> Self:
         mask, val = insn.maskval
 
         if (len(mask) == 32) and (len(data) >= 4):
-            single: Tibs = Tibs.from_bytes(data[:4]).byte_swapped(2)
+            single: Tibs = Tibs.from_bytes(data[:4])
 
         elif (len(mask) == 16) and (len(data) >= 2):
-            single: Tibs = Tibs.from_bytes(data[:2]).byte_swapped(2)
+            single: Tibs = Tibs.from_bytes(data[:2])
 
         else:
             raise ValueError('No valid instruction found in data')
+
+        if byte_swapped:
+            single = single.byte_swapped(2)
 
         if (single & mask) != val:
             raise ValueError('No valid instruction found in data')
