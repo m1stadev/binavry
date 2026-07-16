@@ -5,7 +5,7 @@ from typing import Self
 
 from tibs import Tibs
 
-from .insns import ALT_INSTRUCTIONS, InstructionData, Instructions
+from .insns import InstructionData, Instructions
 
 
 @dataclass(frozen=True)
@@ -77,10 +77,10 @@ class Instruction:
         self._ops.remove(op)
 
     @staticmethod
-    def _decode_operands(data: Tibs, insn: InstructionData) -> tuple[Operand]:
+    def _decode_operands(data: Tibs, idata: InstructionData) -> tuple[Operand]:
         operands = list()
-        for arg in insn.op_order:
-            idx = [i for i, o in enumerate(insn.sig) if o == arg]
+        for arg in idata.op_order:
+            idx = [i for i, o in enumerate(idata.sig) if o == arg]
 
             op = Tibs(data[i] for i in idx)
             op_type = OpType(arg)
@@ -111,7 +111,7 @@ class Instruction:
                 case OpType.ADDR_IMM:
                     match len(idx):
                         case 7:
-                            # if '_rc' in insn.name:
+                            # if '_rc' in idata.name:
                             #    value = op.u if 0 <= op.u <= 127 else None
                             # else:
                             value = ((op.i + 1) * 2) if -0x40 <= op.i < 0x40 else None
@@ -120,10 +120,10 @@ class Instruction:
                         case 16:
                             value = (op.u * 2) if 0 < op.u <= 0x7FFF else None
                         case 22:
-                            if insn.name == 'CALL':
+                            if idata.name == 'CALL':
                                 # TODO: Fix fail on SoCs with a 22-bit PC
                                 value = (op.u * 2) if 0 <= op.u <= 0x7FFF else None
-                            elif insn.name == 'JMP':
+                            elif idata.name == 'JMP':
                                 value = (op.u * 2) if 0 <= op.u <= 0x1FFFFF else None
 
                 case OpType.IMM | OpType.ADDR_DIS | OpType.ADDR_IO:
@@ -134,19 +134,21 @@ class Instruction:
 
             operands.append(Operand(op_type=op_type, value=value, index=idx))
 
-        if insn in (
+        if idata in (
             Instructions.CLR,
             Instructions.LSL,
             Instructions.ROL,
             Instructions.TST,
         ):
             if operands[0].value != operands[1].value:
-                raise ValueError(f'Different registers cannot be passed to {insn.name}')
+                raise ValueError(
+                    f'Different registers cannot be passed to {idata.name}'
+                )
 
             operands.pop(-1)
 
-        if '_' in insn.name:
-            op_type = OpType(insn.name.split('_')[-1])
+        if '_' in idata.name:
+            op_type = OpType(idata.name.split('_')[-1])
             match op_type:
                 case OpType.REG_XINC | OpType.REG_YINC | OpType.REG_ZINC:
                     value = 1
@@ -164,7 +166,7 @@ class Instruction:
                     else:
                         value = 0
 
-            if insn.mnem in ('st', 'std'):
+            if idata.mnem in ('st', 'std'):
                 idx = 0
 
             else:
@@ -180,12 +182,12 @@ class Instruction:
         if len(data) < 2:
             raise ValueError('Data is too small to contain instruction')
 
-        for insn in sorted(
-            [insn.value for insn in Instructions],
+        for idata in sorted(
+            [idata.value for idata in Instructions],
             key=lambda i: len(i.sig),
             reverse=True,
         ):
-            mask, val = insn.maskval
+            mask, val = idata.maskval
 
             if (len(mask) == 32) and (len(data) >= 4):
                 single: Tibs = Tibs.from_bytes(data[:4])
@@ -202,25 +204,25 @@ class Instruction:
             if (single & mask) != val:
                 continue
 
-            if insn.base is not None:
+            if idata.is_base:
                 for alt in [
-                    alt.value for alt in ALT_INSTRUCTIONS[Instructions(insn.base)]
+                    alt.value for alt in Instructions if alt.value.base == idata
                 ]:
                     try:
                         return cls.decode_as(data, alt)
                     except ValueError:
                         pass
 
-            operands = cls._decode_operands(single, insn)
-            return cls(single.to_bytes(), idata=insn, operands=operands)
+            operands = cls._decode_operands(single, idata)
+            return cls(single.to_bytes(), idata=idata, operands=operands)
 
         raise ValueError('No valid instruction found in data')
 
     @classmethod
     def decode_as(
-        cls, data: bytes, insn: InstructionData, byte_swapped: bool = True
+        cls, data: bytes, idata: InstructionData, byte_swapped: bool = True
     ) -> Self:
-        mask, val = insn.maskval
+        mask, val = idata.maskval
 
         if (len(mask) == 32) and (len(data) >= 4):
             single: Tibs = Tibs.from_bytes(data[:4])
@@ -237,5 +239,5 @@ class Instruction:
         if (single & mask) != val:
             raise ValueError('No valid instruction found in data')
 
-        operands = cls._decode_operands(single, insn)
-        return cls(single.to_bytes(), idata=insn, operands=operands)
+        operands = cls._decode_operands(single, idata)
+        return cls(single.to_bytes(), idata=idata, operands=operands)
