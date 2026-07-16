@@ -52,6 +52,10 @@ class Instruction:
         return self._data
 
     @property
+    def flags(self) -> str:
+        return self.idata.flags
+
+    @property
     def idata(self) -> InstructionData:
         return self._idata
 

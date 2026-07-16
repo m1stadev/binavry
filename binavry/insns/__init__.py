@@ -14,6 +14,7 @@ class InstructionData:
     mnem: str
     sig: str
     op_order: str = ''
+    flags: str = ''
 
     @cached_property
     def maskval(self) -> tuple[Tibs, Tibs]:
@@ -70,7 +71,7 @@ Instructions = Enum(
     type=_InstructionsEnum,
 )
 
-ALT_INSTRUCTIONS: frozendict[Instructions, tuple[Instructions]] = frozendict(
+_ALT_INSTRUCTIONS: frozendict[Instructions, tuple[Instructions]] = frozendict(
     {
         Instructions.ADC: (Instructions.ROL,),
         Instructions.ADD: (Instructions.LSL,),
@@ -125,10 +126,10 @@ ALT_INSTRUCTIONS: frozendict[Instructions, tuple[Instructions]] = frozendict(
 
 
 def _get_base_insn(idata: InstructionData) -> InstructionData | None:
-    for base, alts in ALT_INSTRUCTIONS.items():
+    for base, alts in _ALT_INSTRUCTIONS.items():
         if any(idata == alt for alt in alts):
             return base.value
 
 
 def _is_base(idata: InstructionData) -> bool:
-    return Instructions(idata) in ALT_INSTRUCTIONS.keys()
+    return Instructions(idata) in _ALT_INSTRUCTIONS.keys()

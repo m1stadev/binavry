@@ -4,6 +4,7 @@ from binaryninja import (
     BasicBlock,
     BasicBlockAnalysisContext,
     BranchType,
+    FlagRole,
     Function,
     InstructionInfo,
     InstructionTextToken,
@@ -25,6 +26,52 @@ class AVRArch(Architecture):
     default_int_size = 1
     instr_alignment = 2
     max_instr_length = 4
+
+    flags = ['c', 'z', 'n', 'v', 's', 'h', 't', 'i']
+    flag_roles = {
+        'c': FlagRole.CarryFlagRole,
+        'z': FlagRole.ZeroFlagRole,
+        'n': FlagRole.NegativeSignFlagRole,
+        'v': FlagRole.OverflowFlagRole,
+        's': FlagRole.PositiveSignFlagRole,
+        'h': FlagRole.HalfCarryFlagRole,
+        't': FlagRole.SpecialFlagRole,
+        'i': FlagRole.SpecialFlagRole,
+    }
+    flag_write_types = [
+        'crry',
+        'zero',
+        'ngtv',
+        'ovfl',
+        'sign',
+        'half',
+        'bcpy',
+        'inte',
+        'bit',
+        'math',
+        'mul',
+        'shift_left',
+        'shift_right',
+        'sreg',
+        'word',
+    ]
+    flags_written_By_flag_write_type = {
+        'crry': ['c'],
+        'zero': ['z'],
+        'ngtv': ['n'],
+        'ovfl': ['v'],
+        'sign': ['s'],
+        'half': ['h'],
+        'bcpy': ['t'],
+        'inte': ['i'],
+        'bit': ['z', 'n', 'v', 's'],
+        'math': ['z', 'c', 'n', 'v', 's', 'h'],
+        'mul': ['z', 'c'],
+        'sreg': ['c', 'z', 'n', 'v', 's', 'h', 't', 'i'],
+        'shift_left': ['z', 'c', 'n', 'v', 'h'],
+        'shift_right': ['z', 'c', 'n', 'v'],
+        'word': ['z', 'c', 'n', 'v', 's'],
+    }
 
     regs = {
         'r0': RegisterInfo('r0', 1),
