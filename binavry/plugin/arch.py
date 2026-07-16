@@ -96,8 +96,7 @@ class AVRArch(Architecture):
                 except ValueError:
                     break
 
-                block.add_instruction_data(insn.data)
-
+                end_block = False
                 idata = insn.idata.base or insn.idata
                 if idata not in (
                     Instructions.BRBC,
@@ -131,16 +130,23 @@ class AVRArch(Architecture):
                             else:
                                 val = insn.operands[-1].value
 
-                            data.define_auto_symbol_and_var_or_function(
-                                Symbol(SymbolType.FunctionSymbol, val, f'sub_{val:x}')
-                            )
-                            data.add_function(val)
-                            context.add_direct_code_reference(
-                                val, ArchAndAddr(self, addr)
-                            )
+                            if not (0 <= val <= data.segments[0].length):
+                                end_block = True
+                            else:
+                                data.define_auto_symbol_and_var_or_function(
+                                    Symbol(
+                                        SymbolType.FunctionSymbol, val, f'sub_{val:x}'
+                                    )
+                                )
+                                data.add_function(val)
+                                context.add_direct_code_reference(
+                                    val, ArchAndAddr(self, addr)
+                                )
 
-                    addr += len(insn.data)
-                    continue
+                    if end_block is False:
+                        block.add_instruction_data(insn.data)
+                        addr += len(insn.data)
+                        continue
 
                 match idata:
                     case Instructions.JMP | Instructions.RJMP:
@@ -148,28 +154,34 @@ class AVRArch(Architecture):
                         if insn.idata == Instructions.RJMP:
                             val += addr
 
-                        blocks_to_process.append(val)
-                        block.add_pending_outgoing_edge(
-                            BranchType.UnconditionalBranch,
-                            val,
-                            func.arch,
-                        )
+                        if not (0 <= val <= data.segments[0].length):
+                            end_block = True
+                        else:
+                            blocks_to_process.append(val)
+                            block.add_pending_outgoing_edge(
+                                BranchType.UnconditionalBranch,
+                                val,
+                                func.arch,
+                            )
 
                     case Instructions.BRBC | Instructions.BRBS:
                         val = addr + insn.operands[-1].value
                         blocks_to_process += [val, addr + 2]
 
-                        block.add_pending_outgoing_edge(
-                            BranchType.TrueBranch,
-                            val,
-                            func.arch,
-                        )
+                        if not (0 <= val <= data.segments[0].length):
+                            end_block = True
+                        else:
+                            block.add_pending_outgoing_edge(
+                                BranchType.TrueBranch,
+                                val,
+                                func.arch,
+                            )
 
-                        block.add_pending_outgoing_edge(
-                            BranchType.FalseBranch,
-                            addr + 2,
-                            func.arch,
-                        )
+                            block.add_pending_outgoing_edge(
+                                BranchType.FalseBranch,
+                                addr + 2,
+                                func.arch,
+                            )
 
                     # case (
                     #    Instructions.EICALL
@@ -179,7 +191,12 @@ class AVRArch(Architecture):
                     # ):
                     #    info.add_branch(BranchType.IndirectBranch)
 
-                block.end = addr + len(insn.data)
+                if end_block is False:
+                    block.add_instruction_data(insn.data)
+                    block.end = addr + len(insn.data)
+                else:
+                    block.end = addr
+
                 context.add_basic_block(block)
                 break
 
