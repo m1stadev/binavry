@@ -154,23 +154,6 @@ class AVRArch(Architecture):
                     Instructions.RJMP,
                 ):
                     match idata:
-                        case Instructions.IN | Instructions.OUT:
-                            io_offset = data.get_section_by_name('ROM').length
-                            op = next(
-                                op
-                                for op in insn.operands
-                                if op.op_type == OpType.ADDR_IO
-                            )
-                            io_reg = data.get_symbol_at(
-                                io_offset + op.value + 0x20,
-                                namespace=SymbolType.DataSymbol,
-                            )
-
-                            arch_context['mapped_io'][addr] = {
-                                'name': io_reg.name,
-                                'addr': io_reg.address,
-                            }
-
                         case Instructions.CALL | Instructions.RCALL:
                             if idata == Instructions.RCALL:
                                 val = addr + insn.operands[-1].value
@@ -189,6 +172,21 @@ class AVRArch(Architecture):
                                 context.add_direct_code_reference(
                                     val, ArchAndAddr(self, addr)
                                 )
+
+                    op = next(
+                        (op for op in insn.operands if op.op_type == OpType.ADDR_IO),
+                        None,
+                    )
+                    if op is not None:
+                        io_reg = data.get_symbol_at(
+                            data.get_section_by_name('MAPPED_IO').length + op.value,
+                            namespace=SymbolType.DataSymbol,
+                        )
+
+                        arch_context['mapped_io'][addr] = {
+                            'name': io_reg.name,
+                            'addr': io_reg.address,
+                        }
 
                     if end_block is False:
                         block.add_instruction_data(insn.data)
