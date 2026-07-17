@@ -370,8 +370,10 @@ class AVRArch(Architecture):
 
         tokens = [
             InstructionTextToken(InstructionTextTokenType.InstructionToken, insn.mnem),
-            InstructionTextToken(InstructionTextTokenType.TextToken, ' '),
         ]
+
+        if len(insn.operands) > 0:
+            tokens.append(InstructionTextToken(InstructionTextTokenType.TextToken, ' '))
 
         for op in insn.operands:
             match op.op_type:
