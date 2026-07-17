@@ -76,7 +76,6 @@ _ALT_INSTRUCTIONS: frozendict[Instructions, tuple[Instructions]] = frozendict(
         Instructions.ADC: (Instructions.ROL,),
         Instructions.ADD: (Instructions.LSL,),
         Instructions.AND: (Instructions.TST,),
-        # Instructions.ANDI: (Instructions.CBR,),
         Instructions.BRBC: (
             Instructions.BRCC,
             Instructions.BRGE,
@@ -121,7 +120,6 @@ _ALT_INSTRUCTIONS: frozendict[Instructions, tuple[Instructions]] = frozendict(
         ),
         Instructions.EOR: (Instructions.CLR,),
         Instructions.LDI: (Instructions.SER,),
-        # Instructions.ORI: (Instructions.SBR,),
     }
 )  # ty:ignore[invalid-assignment]
 
