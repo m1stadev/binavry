@@ -179,7 +179,7 @@ class AVRArch(Architecture):
                     )
                     if op is not None:
                         io_reg = data.get_symbol_at(
-                            data.get_section_by_name('MAPPED_IO').length + op.value,
+                            data.get_section_by_name('MAPPED_IO').start + op.value,
                             namespace=SymbolType.DataSymbol,
                         )
 
