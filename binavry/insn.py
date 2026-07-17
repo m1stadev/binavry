@@ -213,7 +213,7 @@ class Instruction:
                     alt.value for alt in Instructions if alt.value.base == idata
                 ]:
                     try:
-                        return cls.decode_as(data, alt)
+                        return cls.decode_as(data, alt, byte_swapped)
                     except ValueError:
                         pass
 
