@@ -152,6 +152,10 @@ class AVRArch(Architecture):
                     Instructions.RET,
                     Instructions.RETI,
                     Instructions.RJMP,
+                    Instructions.SBRC,
+                    Instructions.SBRS,
+                    Instructions.SBIC,
+                    Instructions.SBIS,
                 ):
                     match idata:
                         case Instructions.CALL | Instructions.RCALL:
@@ -228,6 +232,31 @@ class AVRArch(Architecture):
                                 func.arch,
                             )
 
+                    case (
+                        Instructions.SBRC
+                        | Instructions.SBRS
+                        | Instructions.SBIC
+                        | Instructions.SBIS
+                    ):
+                        val = (
+                            addr
+                            + 2
+                            + len(Instruction.decode(data.read(addr + 2, 4)).data)
+                        )
+                        blocks_to_process += [val, addr + 2]
+
+                        block.add_pending_outgoing_edge(
+                            BranchType.TrueBranch,
+                            val,
+                            func.arch,
+                        )
+
+                        block.add_pending_outgoing_edge(
+                            BranchType.FalseBranch,
+                            addr + 2,
+                            func.arch,
+                        )
+
                     # case (
                     #    Instructions.EICALL
                     #    | Instructions.EIJMP
@@ -277,6 +306,21 @@ class AVRArch(Architecture):
 
             case Instructions.BRBC | Instructions.BRBS:
                 info.add_branch(BranchType.TrueBranch, (addr + insn.operands[-1].value))
+                info.add_branch(BranchType.FalseBranch, (addr + 2))
+
+            case (
+                Instructions.SBRC
+                | Instructions.SBRS
+                | Instructions.SBIC
+                | Instructions.SBIS
+            ):
+                try:
+                    Instruction.decode(data[-2:])
+                    val = 2
+                except ValueError:
+                    val = 4
+
+                info.add_branch(BranchType.TrueBranch, (addr + 2 + val))
                 info.add_branch(BranchType.FalseBranch, (addr + 2))
 
             case Instructions.RET | Instructions.RETI:
