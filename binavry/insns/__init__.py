@@ -112,6 +112,7 @@ _ALT_INSTRUCTIONS: frozendict[Instructions, tuple[Instructions]] = frozendict(
         Instructions.BSET: (
             Instructions.SEC,
             Instructions.SEH,
+            Instructions.SEI,
             Instructions.SEN,
             Instructions.SES,
             Instructions.SET,
