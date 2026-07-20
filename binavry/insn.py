@@ -105,7 +105,10 @@ class Instruction:
                         case 3:
                             value = (op.u + 0x10) if 0 <= op.u <= 0x7 else None
                         case 4:
-                            value = (op.u + 0x10) if 0 <= op.u <= 0xF else None
+                            if idata == Instructions.MOVW:
+                                value = (op.u * 2) if 0 <= op.u <= 0xF else None
+                            else:
+                                value = (op.u + 0x10) if 0 <= op.u <= 0xF else None
                         case 5:
                             value = op.u if 0 <= op.u <= 0x1F else None
 
