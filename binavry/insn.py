@@ -220,7 +220,11 @@ class Instruction:
                     except ValueError:
                         pass
 
-            operands = cls._decode_operands(single, idata)
+            try:
+                operands = cls._decode_operands(single, idata)
+            except ValueError:
+                continue
+
             return cls(single.to_bytes(), idata=idata, operands=operands)
 
         raise ValueError('No valid instruction found in data')
