@@ -378,11 +378,49 @@ class AVRArch(Architecture):
         for op in insn.operands:
             match op.op_type:
                 case OpType.REG_DST | OpType.REG_SRC:
-                    tokens.append(
-                        InstructionTextToken(
-                            InstructionTextTokenType.RegisterToken, f'r{op.value}'
+                    reg = None
+                    if insn.idata in (
+                        Instructions.ADIW,
+                        Instructions.MOVW,
+                        Instructions.SBIW,
+                    ):
+                        match op.value:
+                            case 26:
+                                reg = 'X'
+                            case 28:
+                                reg = 'Y'
+                            case 30:
+                                reg = 'Z'
+
+                        if reg is not None:
+                            tokens.append(
+                                InstructionTextToken(
+                                    InstructionTextTokenType.RegisterToken,
+                                    reg,
+                                )
+                            )
+                        else:
+                            tokens += (
+                                InstructionTextToken(
+                                    InstructionTextTokenType.RegisterToken,
+                                    f'r{op.value + 1}',
+                                ),
+                                InstructionTextToken(
+                                    InstructionTextTokenType.TextToken, ':'
+                                ),
+                                InstructionTextToken(
+                                    InstructionTextTokenType.RegisterToken,
+                                    f'r{op.value}',
+                                ),
+                            )
+
+                    else:
+                        tokens.append(
+                            InstructionTextToken(
+                                InstructionTextTokenType.RegisterToken,
+                                f'r{op.value}',
+                            )
                         )
-                    )
 
                 case OpType.IMM:
                     tokens.append(
