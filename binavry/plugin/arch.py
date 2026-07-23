@@ -18,6 +18,7 @@ from binaryninja import (
 from binaryninja.lowlevelil import ExpressionIndex
 
 from . import Instruction, Instructions, Operand, OpType
+from .compat import add_instruction_data
 
 
 class AVRArch(Architecture):
@@ -193,7 +194,7 @@ class AVRArch(Architecture):
                         }
 
                     if end_block is False:
-                        block.add_instruction_data(insn.data)
+                        add_instruction_data(context, block, insn.data)
                         addr += len(insn.data)
                         continue
 
@@ -266,7 +267,7 @@ class AVRArch(Architecture):
                     #    info.add_branch(BranchType.IndirectBranch)
 
                 if end_block is False:
-                    block.add_instruction_data(insn.data)
+                    add_instruction_data(context, block, insn.data)
                     block.end = addr + len(insn.data)
                 else:
                     block.end = addr
