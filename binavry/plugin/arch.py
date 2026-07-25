@@ -149,6 +149,7 @@ class AVRArch(Architecture):
                 if idata not in (
                     Instructions.BRBC,
                     Instructions.BRBS,
+                    Instructions.CPSE,
                     Instructions.JMP,
                     Instructions.RET,
                     Instructions.RETI,
@@ -234,7 +235,8 @@ class AVRArch(Architecture):
                             )
 
                     case (
-                        Instructions.SBRC
+                        Instructions.CPSE
+                        | Instructions.SBRC
                         | Instructions.SBRS
                         | Instructions.SBIC
                         | Instructions.SBIS
