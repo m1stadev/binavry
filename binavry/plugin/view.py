@@ -6,10 +6,11 @@ from binaryninja import (
     SegmentFlag,
     Symbol,
     SymbolType,
+    Type,
 )
 from tibs import Tibs
 
-from . import Instruction
+from . import RAM_BEGIN, Instruction
 from .arch import AVRArch
 from .atpack import PackDownloader
 
@@ -57,7 +58,7 @@ class AVRView(BinaryView):
 
         # TODO: Implement setting for choosing device
         self._device_info = next(
-            pack for pack in self._packdownloader.packs if pack.device == 'ATmega328P'
+            pack for pack in self._packdownloader.packs if pack.device == 'AT90CAN64'
         ).device_info
 
         rom = next(seg for seg in self.device_info.segments if seg.name == 'prog')
@@ -97,7 +98,7 @@ class AVRView(BinaryView):
 
         ram = next(seg for seg in self.device_info.segments if seg.name == 'data')
         self.add_auto_segment(
-            start=rom.size,
+            start=RAM_BEGIN,
             length=ram.size,
             data_offset=0,
             data_length=0,
@@ -105,14 +106,14 @@ class AVRView(BinaryView):
         )
 
         self.add_auto_section(
-            'RAM', rom.size, ram.size, SectionSemantics.ReadWriteDataSectionSemantics
+            'RAM', RAM_BEGIN, ram.size, SectionSemantics.ReadWriteDataSectionSemantics
         )
 
         start = 0
         for sec in ram.sections:
             self.add_auto_section(
                 name=sec.name,
-                start=rom.size + start,
+                start=RAM_BEGIN + start,
                 length=sec.size,
                 semantics=SectionSemantics.ReadWriteDataSectionSemantics,
             )
@@ -121,20 +122,24 @@ class AVRView(BinaryView):
         for reg in sorted(self.device_info.registers, key=lambda r: r.offset):
             if reg.size == 2:
                 self.define_auto_symbol_and_var_or_function(
-                    Symbol(
-                        SymbolType.DataSymbol, rom.size + reg.offset, (reg.name + 'L')
-                    )
+                    sym=Symbol(
+                        SymbolType.DataSymbol, RAM_BEGIN + reg.offset, (reg.name + 'L')
+                    ),
+                    type=Type.int(width=1, sign=False),
                 )
                 self.define_auto_symbol_and_var_or_function(
-                    Symbol(
+                    sym=Symbol(
                         SymbolType.DataSymbol,
-                        rom.size + reg.offset + 1,
+                        RAM_BEGIN + reg.offset + 1,
                         (reg.name + 'H'),
-                    )
+                    ),
+                    type=Type.int(width=1, sign=False),
                 )
+
             else:
                 self.define_auto_symbol_and_var_or_function(
-                    Symbol(SymbolType.DataSymbol, rom.size + reg.offset, reg.name)
+                    sym=Symbol(SymbolType.DataSymbol, RAM_BEGIN + reg.offset, reg.name),
+                    type=Type.int(width=1, sign=False),
                 )
             # self.arch.regs[reg.name] = RegisterInfo(reg.name, reg.size)
 

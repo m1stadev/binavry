@@ -17,7 +17,7 @@ from binaryninja import (
 )
 from binaryninja.lowlevelil import ExpressionIndex
 
-from . import Instruction, Instructions, Operand, OpType
+from . import RAM_BEGIN, Instruction, Instructions, Operand, OpType
 from .compat import add_instruction_data
 
 
@@ -120,7 +120,7 @@ class AVRArch(Architecture):
         self, func: Function, context: BasicBlockAnalysisContext
     ) -> None:
         # NOTE: The entry point does not call this function,
-        # so IO regs are not displayed correctly in the RESET irq
+        # so IO regs are not displayed correctly in the RESET irq disasm
 
         data = func.view
         blocks_to_process = [func.start]
@@ -185,7 +185,7 @@ class AVRArch(Architecture):
                     )
                     if op is not None:
                         io_reg = data.get_symbol_at(
-                            data.get_section_by_name('MAPPED_IO').start + op.value,
+                            RAM_BEGIN + 0x20 + op.value,
                             namespace=SymbolType.DataSymbol,
                         )
 
@@ -349,7 +349,7 @@ class AVRArch(Architecture):
 
         tokens, length = self.get_instruction_text(data, addr, insn=insn)  # ty:ignore[not-iterable]
 
-        if (context is not None) and (addr in context['mapped_io'].keys()):
+        if (context is not None) and (addr in context['mapped_io']):
             io_reg = context['mapped_io'][addr]
             op = next(op for op in insn.operands if op.op_type == OpType.ADDR_IO)
 
