@@ -45,15 +45,15 @@ from .logic import _LOGIC_INSNS
 class _InstructionsEnum:
     def __eq__(self, other) -> bool:
         if isinstance(other, InstructionData):
-            return getattr(self, 'value') == other
+            return self.value == other
 
         elif isinstance(other, Instructions):
-            return getattr(self, 'value') == other.value
+            return self.value == other.value
 
         return False
 
     def __hash__(self):
-        return hash(getattr(self, '_name_'))
+        return hash(self._name_)
 
 
 Instructions = Enum(
@@ -131,4 +131,4 @@ def _get_base_insn(idata: InstructionData) -> InstructionData | None:
 
 
 def _is_base(idata: InstructionData) -> bool:
-    return Instructions(idata) in _ALT_INSTRUCTIONS.keys()
+    return Instructions(idata) in _ALT_INSTRUCTIONS
