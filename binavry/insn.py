@@ -41,8 +41,10 @@ class OpType(StrEnum):
 
 class Instruction:
     def __init__(
-        self, data: bytes, idata: InstructionData, operands: list[Operand] = []
+        self, data: bytes, idata: InstructionData, operands: list[Operand] | None = None
     ):
+        if operands is None:
+            operands = []
         self._data = data
         self._idata = idata
         self._ops: list[Operand] = operands
@@ -82,7 +84,7 @@ class Instruction:
 
     @staticmethod
     def _decode_operands(data: Tibs, idata: InstructionData) -> tuple[Operand]:
-        operands = list()
+        operands = []
         for arg in idata.op_order:
             idx = [i for i, o in enumerate(idata.sig) if o == arg]
 
@@ -230,6 +232,7 @@ class Instruction:
         raise ValueError('No valid instruction found in data')
 
     @classmethod
+    @lru_cache
     def decode_as(
         cls, data: bytes, idata: InstructionData, byte_swapped: bool = True
     ) -> Self:
