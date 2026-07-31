@@ -3,8 +3,6 @@ from . import InstructionData
 _FLOW_INSNS = (
     InstructionData(name='BRBC',   mnem='brbc',   sig='111101kkkkkkksss', op_order='sk'),
     InstructionData(name='BRBS',   mnem='brbs',   sig='111100kkkkkkksss', op_order='sk'),
-    InstructionData(name='BRCC',   mnem='brcc',   sig='111101kkkkkkk000', op_order='k'),
-    InstructionData(name='BRCS',   mnem='brcs',   sig='111100kkkkkkk000', op_order='k'),
     InstructionData(name='BREQ',   mnem='breq',   sig='111100kkkkkkk001', op_order='k'),
     InstructionData(name='BRGE',   mnem='brge',   sig='111101kkkkkkk100', op_order='k'),
     InstructionData(name='BRHC',   mnem='brhc',   sig='111101kkkkkkk101', op_order='k'),

@@ -77,7 +77,6 @@ _ALT_INSTRUCTIONS: frozendict[Instructions, tuple[Instructions]] = frozendict(
         Instructions.ADD: (Instructions.LSL,),
         Instructions.AND: (Instructions.TST,),
         Instructions.BRBC: (
-            Instructions.BRCC,
             Instructions.BRGE,
             Instructions.BRHC,
             Instructions.BRID,
@@ -88,7 +87,6 @@ _ALT_INSTRUCTIONS: frozendict[Instructions, tuple[Instructions]] = frozendict(
             Instructions.BRVC,
         ),
         Instructions.BRBS: (
-            Instructions.BRCS,
             Instructions.BREQ,
             Instructions.BRHS,
             Instructions.BRIE,
