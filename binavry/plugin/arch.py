@@ -5,20 +5,33 @@ from binaryninja import (
     BasicBlockAnalysisContext,
     BranchType,
     FlagRole,
+    FlagType,
+    FlagWriteTypeName,
     Function,
+    FunctionLifterContext,
+    ILOperandType,
     InstructionInfo,
     InstructionTextToken,
     InstructionTextTokenType,
+    IntrinsicInfo,
+    IntrinsicInput,
+    LowLevelILFlagCondition,
     LowLevelILFunction,
+    LowLevelILLabel,
+    LowLevelILOperation,
     RegisterInfo,
     RegisterName,
+    SemanticClassType,
+    SemanticGroupType,
     Symbol,
     SymbolType,
+    Type,
 )
 from binaryninja.lowlevelil import ExpressionIndex
 
 from . import RAM_BEGIN, Instruction, Instructions, Operand, OpType
-from .compat import add_instruction_data
+from .compat import add_instruction_data, get_instruction_data
+from .il import ILInstruction
 
 
 class AVRArch(Architecture):
@@ -27,52 +40,6 @@ class AVRArch(Architecture):
     default_int_size = 1
     instr_alignment = 2
     max_instr_length = 4
-
-    flags = ['c', 'z', 'n', 'v', 's', 'h', 't', 'i']
-    flag_roles = {
-        'c': FlagRole.CarryFlagRole,
-        'z': FlagRole.ZeroFlagRole,
-        'n': FlagRole.NegativeSignFlagRole,
-        'v': FlagRole.OverflowFlagRole,
-        's': FlagRole.PositiveSignFlagRole,
-        'h': FlagRole.HalfCarryFlagRole,
-        't': FlagRole.SpecialFlagRole,
-        'i': FlagRole.SpecialFlagRole,
-    }
-    flag_write_types = [
-        'crry',
-        'zero',
-        'ngtv',
-        'ovfl',
-        'sign',
-        'half',
-        'bcpy',
-        'inte',
-        'bit',
-        'math',
-        'mul',
-        'shift_left',
-        'shift_right',
-        'sreg',
-        'word',
-    ]
-    flags_written_By_flag_write_type = {
-        'crry': ['c'],
-        'zero': ['z'],
-        'ngtv': ['n'],
-        'ovfl': ['v'],
-        'sign': ['s'],
-        'half': ['h'],
-        'bcpy': ['t'],
-        'inte': ['i'],
-        'bit': ['z', 'n', 'v', 's'],
-        'math': ['z', 'c', 'n', 'v', 's', 'h'],
-        'mul': ['z', 'c'],
-        'sreg': ['c', 'z', 'n', 'v', 's', 'h', 't', 'i'],
-        'shift_left': ['z', 'c', 'n', 'v', 'h'],
-        'shift_right': ['z', 'c', 'n', 'v'],
-        'word': ['z', 'c', 'n', 'v', 's'],
-    }
 
     regs = {
         'r0': RegisterInfo('r0', 1),
@@ -111,10 +78,94 @@ class AVRArch(Architecture):
         'r30': RegisterInfo('Z', 1, 0),
         'r31': RegisterInfo('Z', 1, 1),
         'SP': RegisterInfo('SP', 2),
+        'SPH': RegisterInfo('SP', 1, 0),
+        'SPL': RegisterInfo('SP', 1, 1),
+    }
+
+    flags = ['c', 'z', 'n', 'v', 's', 'h', 't', 'i']
+    flag_roles = {
+        'c': FlagRole.CarryFlagRole,
+        'z': FlagRole.ZeroFlagRole,
+        'n': FlagRole.NegativeSignFlagRole,
+        'v': FlagRole.OverflowFlagRole,
+        's': FlagRole.PositiveSignFlagRole,
+        'h': FlagRole.HalfCarryFlagRole,
+        't': FlagRole.SpecialFlagRole,
+        'i': FlagRole.SpecialFlagRole,
+    }
+
+    flag_write_types = [
+        'crry',
+        'zero',
+        'ngtv',
+        'ovfl',
+        'sign',
+        'half',
+        'bcpy',
+        'gint',
+        'bit',
+        'math',
+        'mul',
+        'word',
+    ]
+
+    flags_written_By_flag_write_type = {
+        'crry': ['c'],
+        'zero': ['z'],
+        'ngtv': ['n'],
+        'ovfl': ['v'],
+        'sign': ['s'],
+        'half': ['h'],
+        'bcpy': ['t'],
+        'gint': ['i'],
+        'bit': ['z', 'n', 'v', 's'],
+        'math': ['z', 'c', 'n', 'v', 's', 'h'],
+        'mul': ['z', 'c'],
+        'word': ['z', 'c', 'n', 'v', 's'],
     }
 
     global_regs = ['r0', 'r1']
     stack_pointer = 'SP'
+
+    intrinsics = {
+        '__builtin_avr_nop': IntrinsicInfo(
+            inputs=[IntrinsicInput(type=Type.void(), name='input')],
+            outputs=[Type.void()],
+        ),
+        '__builtin_avr_sleep': IntrinsicInfo(
+            inputs=[IntrinsicInput(type=Type.void(), name='input')],
+            outputs=[Type.void()],
+        ),
+        '__builtin_avr_wdr': IntrinsicInfo(
+            inputs=[IntrinsicInput(type=Type.void(), name='input')],
+            outputs=[Type.void()],
+        ),
+        '__builtin_avr_swap': IntrinsicInfo(
+            inputs=[IntrinsicInput(type=Type.int(width=1, sign=False), name='input')],
+            outputs=[Type.int(width=1, sign=False)],
+        ),
+        '__builtin_avr_fmul': IntrinsicInfo(
+            inputs=[
+                IntrinsicInput(type=Type.int(width=1, sign=False), name='input'),
+                IntrinsicInput(type=Type.int(width=1, sign=False), name='input'),
+            ],
+            outputs=[Type.int(width=2, sign=False)],
+        ),
+        '__builtin_avr_fmuls': IntrinsicInfo(
+            inputs=[
+                IntrinsicInput(type=Type.int(width=1, sign=True), name='input'),
+                IntrinsicInput(type=Type.int(width=1, sign=True), name='input'),
+            ],
+            outputs=[Type.int(width=2, sign=True)],
+        ),
+        '__builtin_avr_fmulsu': IntrinsicInfo(
+            inputs=[
+                IntrinsicInput(type=Type.int(width=1, sign=True), name='input'),
+                IntrinsicInput(type=Type.int(width=1, sign=False), name='input'),
+            ],
+            outputs=[Type.int(width=2, sign=True)],
+        ),
+    }
 
     def analyze_basic_blocks(
         self, func: Function, context: BasicBlockAnalysisContext
@@ -557,6 +608,110 @@ class AVRArch(Architecture):
         return (tokens, len(insn.data))
 
     def get_instruction_low_level_il(
-        self, data: bytes, addr: int, il: LowLevelILFunction
+        self,
+        data: bytes,
+        addr: int,
+        il: LowLevelILFunction,
+        insn: ILInstruction | None = None,
     ) -> int | None:
-        return None
+        if insn is None:
+            try:
+                insn = ILInstruction(addr, data, il, byte_swapped=False)
+            except ValueError:
+                return None
+
+        insn.llil()
+        return len(insn.data)
+
+    def lift_function(
+        self, func: LowLevelILFunction, context: FunctionLifterContext
+    ) -> bool:
+        data = func.view
+        for block in context.blocks:
+            context.prepare_block_translation(func, block.arch, block.start)
+            label = func.get_label_for_address(block.arch, block.start)
+            if label is not None:
+                func.mark_label(label)
+
+            addr = block.start
+            while addr < block.end:
+                if data.analysis_is_aborted:
+                    break
+
+                func.set_current_address(addr, block.arch)
+                try:
+                    insn = get_instruction_data(context, block, addr)
+                except:
+                    insn = data.read(addr, block.end - addr)
+
+                try:
+                    insn = ILInstruction(addr, insn, func, byte_swapped=False)
+                except:
+                    func.append(func.no_ret())
+                    continue
+
+                addr += self.get_instruction_low_level_il(
+                    insn.data, addr, func, insn=insn
+                )
+
+                if insn.idata in (
+                    Instructions.CPSE,
+                    Instructions.SBIC,
+                    Instructions.SBIS,
+                    Instructions.SBRC,
+                    Instructions.SBRS,
+                ):
+                    match insn.idata:
+                        case Instructions.CPSE:
+                            cond = func.compare_equal(size=1, a=insn.rd, b=insn.rr)
+
+                        case Instructions.SBIC | Instructions.SBIS:
+                            cond = func.test_bit(
+                                size=1,
+                                a=func.load(
+                                    size=1,
+                                    addr=insn.const(
+                                        RAM_BEGIN + 0x20 + insn.op(OpType.ADDR_IO)
+                                    ),
+                                ),
+                                b=insn.op_const(OpType.BIT_REG),
+                            )
+
+                        case Instructions.SBRC | Instructions.SBRS:
+                            cond = func.test_bit(
+                                size=1, a=insn.rr, b=insn.op_const(OpType.BIT_REG)
+                            )
+
+                    if insn.idata in (Instructions.SBIC, Instructions.SBRC):
+                        cond = func.not_expr(size=1, value=cond)
+
+                    try:
+                        t = insn.label(
+                            addr + len(Instruction.decode(data.read(addr, 4)).data)
+                        )
+                    except:
+                        func.append(func.no_ret())
+                        continue
+
+                    f = insn.label(addr)
+
+                    func.append(
+                        func.if_expr(
+                            operand=cond,
+                            t=t,
+                            f=f,
+                        )
+                    )
+
+            curr_seg = data.get_segment_at(block.end - 1)
+            if block.end == curr_seg.end:
+                func.append(func.no_ret())
+            else:
+                exit_label = func.get_label_for_address(block.arch, block.end)
+                if exit_label:
+                    func.append(func.goto(exit_label))
+                else:
+                    func.append(func.jump(block.end))
+
+        func.finalize()
+        return True
