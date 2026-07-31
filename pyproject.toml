@@ -20,9 +20,7 @@ source = "https://github.com/m1stadev/binavry"
 issues = "https://github.com/m1stadev/binavry/issues"
 
 [dependency-groups]
-dev = [
-    "pre-commit>=4.1.0",
-]
+dev = ["pre-commit>=4.1.0"]
 
 [build-system]
 requires = ["hatchling", "uv-dynamic-versioning"]
@@ -41,12 +39,21 @@ target-version = "py311"
 
 [tool.ruff.lint]
 extend-select = ["I"]
-ignore = ["E402", "E722", "E731", "F401"]
+ignore = ["E402", "E722", "E731", "F401", "RUF012", "B009"]
 
 [tool.ruff.format]
-exclude = ["binavry/insns/bit.py", "binavry/insns/ctrl.py", "binavry/insns/data.py", "binavry/insns/flow.py", "binavry/insns/logic.py"]
+exclude = [
+    "binavry/insns/bit.py",
+    "binavry/insns/ctrl.py",
+    "binavry/insns/data.py",
+    "binavry/insns/flow.py",
+    "binavry/insns/logic.py",
+]
 quote-style = "single"
+
+[tool.ty.src]
+#exclude = ["binavry/plugin/arch.py"]
 
 [tool.ty.rules]
 invalid-argument-type = "ignore"
-unresolved-import = "ignore"
+unresolved-attribute = "ignore"

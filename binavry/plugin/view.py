@@ -54,7 +54,7 @@ class AVRView(BinaryView):
 
     def init(self) -> bool:
         self.arch = Architecture['AVR']
-        self.platform = self.arch.standalone_platform  # ty:ignore[unresolved-attribute]
+        self.platform = self.arch.standalone_platform
 
         # TODO: Implement setting for choosing device
         self._device_info = next(

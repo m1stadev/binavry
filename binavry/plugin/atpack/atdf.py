@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from zipfile import ZipFile
 
-from lxml import etree
+from lxml import etree  # ty:ignore[unresolved-import]
 
 
 @dataclass(frozen=True)
