@@ -121,7 +121,7 @@ _ALT_INSTRUCTIONS: frozendict[Instructions, tuple[Instructions]] = frozendict(
         Instructions.EOR: (Instructions.CLR,),
         Instructions.LDI: (Instructions.SER,),
     }
-)  # ty:ignore[invalid-assignment]
+)
 
 
 def _get_base_insn(idata: InstructionData) -> InstructionData | None:
@@ -131,4 +131,4 @@ def _get_base_insn(idata: InstructionData) -> InstructionData | None:
 
 
 def _is_base(idata: InstructionData) -> bool:
-    return Instructions(idata) in _ALT_INSTRUCTIONS.keys()
+    return Instructions(idata) in _ALT_INSTRUCTIONS

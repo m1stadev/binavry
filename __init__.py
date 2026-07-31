@@ -1,6 +1,6 @@
 # from binaryninja import Architecture, BinaryViewType, Endianness
 
-from .binavry.plugin import AVRArch, AVRView  # ty:ignore[unresolved-import]
+from .binavry.plugin import AVRArch, AVRView
 
 AVRArch.register()
 AVRView.register()

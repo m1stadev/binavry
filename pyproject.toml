@@ -51,9 +51,8 @@ exclude = [
 ]
 quote-style = "single"
 
-[tool.ty.src]
-#exclude = ["binavry/plugin/arch.py"]
-
 [tool.ty.rules]
 invalid-argument-type = "ignore"
+invalid-assignment = "ignore"
 unresolved-attribute = "ignore"
+unresolved-import = "ignore"

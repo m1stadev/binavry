@@ -92,7 +92,7 @@ class AVRView(BinaryView):
             else:
                 func = self.add_function(start)
 
-            func.name = irq  # ty:ignore[invalid-assignment]
+            func.name = irq
 
             start += 4
 

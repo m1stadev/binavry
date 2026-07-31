@@ -137,7 +137,7 @@ class AVRArch(Architecture):
 
             finished.append(addr)
 
-            block: BasicBlock = context.create_basic_block(func.arch, addr)  # ty:ignore[invalid-assignment]
+            block: BasicBlock = context.create_basic_block(func.arch, addr)
             while True:
                 try:
                     insn = Instruction.decode(data.read(addr, 4))
