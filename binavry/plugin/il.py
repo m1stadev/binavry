@@ -566,7 +566,7 @@ class ILInstruction:
                 self._il.append(self._il.if_expr(operand=cond, t=t, f=f))
                 if not t.resolved:
                     self._il.mark_label(t)
-                    self._il.append(self._il.jump(self.addr + self.op(OpType.ADDR_IMM)))
+                    self._il.append(self.jump(self.addr + self.op(OpType.ADDR_IMM)))
 
                 if not f.resolved:
                     self._il.mark_label(f)
@@ -841,7 +841,7 @@ class ILInstruction:
                         if base == Instructions.RCALL:
                             val += self.addr
 
-                        self._il.append(self._il.call(self.const(val)))
+                        self._il.append(self._il.call(self.ptr(val)))
 
                     case Instructions.JMP | Instructions.RJMP:
                         val = self.op(OpType.ADDR_IMM)
@@ -909,7 +909,7 @@ class ILInstruction:
                         if not t.resolved:
                             self._il.mark_label(t)
                             self._il.append(
-                                self._il.jump(self.addr + self.op(OpType.ADDR_IMM))
+                                self.jump(self.addr + self.op(OpType.ADDR_IMM))
                             )
 
                         if not f.resolved:
