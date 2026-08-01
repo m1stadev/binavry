@@ -115,7 +115,7 @@ class ILInstruction:
 
             case _:
                 return self._il.reg_split(
-                    size=2, hi='r' + str(dst + 1), lo=self.rd_name
+                    size=1, hi='r' + str(dst + 1), lo=self.rd_name
                 )
 
     @property
@@ -157,7 +157,7 @@ class ILInstruction:
 
             case _:
                 return self._il.reg_split(
-                    size=2, hi='r' + str(src + 1), lo=self.rr_name
+                    size=1, hi='r' + str(src + 1), lo=self.rr_name
                 )
 
     def jump(self, addr: int) -> ExpressionIndex:
@@ -250,14 +250,14 @@ class ILInstruction:
                         if len(self.rdw_name) == 1:
                             self._il.append(
                                 self._il.set_reg(
-                                    size=1, reg=self.rdw_name[0], value=self.rrw
+                                    size=2, reg=self.rdw_name[0], value=self.rrw
                                 )
                             )
 
                         else:
                             self._il.append(
                                 self._il.set_reg_split(
-                                    size=2,
+                                    size=1,
                                     hi=self.rdw_name[0],
                                     lo=self.rdw_name[1],
                                     value=self.rrw,
@@ -285,7 +285,7 @@ class ILInstruction:
                         else:
                             self._il.append(
                                 self._il.set_reg_split(
-                                    size=2, hi='r1', lo='r0', value=val
+                                    size=1, hi='r1', lo='r0', value=val
                                 )
                             )
 
@@ -645,7 +645,7 @@ class ILInstruction:
 
                         else:
                             expr = self._il.set_reg_split(
-                                size=2,
+                                size=1,
                                 hi=self.rdw_name[0],
                                 lo=self.rdw_name[1],
                                 value=val,
