@@ -3,6 +3,7 @@ from functools import cached_property
 from binaryninja import (
     Architecture,
     LowLevelILConst,
+    LowLevelILFlagCondition,
     LowLevelILFunction,
     LowLevelILInstruction,
     LowLevelILLabel,
@@ -74,7 +75,9 @@ class ILInstruction:
         return self._il.const_pointer(size=((val.bit_length() + 7) // 8), value=val)
 
     def label(self, addr: int) -> LowLevelILLabel | None:
-        return self._il.get_label_for_address(arch=Architecture['AVR'], addr=addr)
+        insn = LowLevelILInstruction.create(self._il, self.const(addr))
+        if isinstance(insn, LowLevelILConst):
+            return self._il.get_label_for_address(Architecture['AVR'], insn.constant)
 
     @property
     def rd_name(self) -> RegisterName:
@@ -161,14 +164,9 @@ class ILInstruction:
                 )
 
     def jump(self, addr: int) -> ExpressionIndex:
-        label = None
-        addr = self.const(addr)
-        insn = LowLevelILInstruction.create(self._il, addr)
-        if isinstance(insn, LowLevelILConst):
-            label = self._il.get_label_for_address(Architecture['AVR'], insn.constant)
-
+        label = self.label(addr)
         if label is None:
-            return self._il.jump(addr)
+            return self._il.jump(self.ptr(addr))
 
         else:
             return self._il.goto(label)
@@ -529,7 +527,7 @@ class ILInstruction:
                         grp = 'ne'
 
                     case (1, Instructions.BRBS):
-                        grp = 'eq'
+                        grp = 'e'
 
                     case (2, Instructions.BRBC):
                         grp = 'pos'
@@ -541,7 +539,7 @@ class ILInstruction:
                         grp = 'no'
 
                     case (3, Instructions.BRBS):
-                        grp = 'ov'
+                        grp = 'o'
 
                     case (4, Instructions.BRBC):
                         grp = 'sge'
@@ -549,27 +547,22 @@ class ILInstruction:
                     case (4, Instructions.BRBS):
                         grp = 'uge'
 
-                grp = None
                 if grp is not None:
-                    cond = self._il.flag_group(grp)
+                    cond = self._il.flag_condition(
+                        getattr(LowLevelILFlagCondition, 'LLFC_' + grp.upper())
+                    )
                 else:
                     cond = self._il.flag(Architecture['AVR'].flags[flag])
                     if self.idata == Instructions.BRBC:
                         cond = self._il.not_expr(size=0, value=cond)
 
-                t = (
-                    self.label(self.addr + self.op(OpType.ADDR_IMM))
-                    or LowLevelILLabel()
-                )
-                f = self.label(self.addr + 2) or LowLevelILLabel()
+                t = LowLevelILLabel()
+                f = LowLevelILLabel()
 
                 self._il.append(self._il.if_expr(operand=cond, t=t, f=f))
-                if not t.resolved:
-                    self._il.mark_label(t)
-                    self._il.append(self.jump(self.addr + self.op(OpType.ADDR_IMM)))
-
-                if not f.resolved:
-                    self._il.mark_label(f)
+                self._il.mark_label(t)
+                self._il.append(self.jump(self.addr + self.op(OpType.ADDR_IMM)))
+                self._il.mark_label(f)
 
             case [OpType.REG_DST, OpType.ADDR_IMM]:
                 # LDS
@@ -869,7 +862,7 @@ class ILInstruction:
                                 grp = 'ne'
 
                             case 'eq':
-                                grp = 'eq'
+                                grp = 'e'
 
                             case 'pl':
                                 grp = 'pos'
@@ -881,11 +874,12 @@ class ILInstruction:
                                 grp = 'no'
 
                             case 'vs':
-                                grp = 'ov'
+                                grp = 'o'
 
-                        grp = None
                         if grp is not None:
-                            cond = self._il.flag_group(grp)
+                            cond = self._il.flag_condition(
+                                getattr(LowLevelILFlagCondition, 'LLFC_' + grp.upper())
+                            )
                         else:
                             cond = self._il.flag(
                                 Architecture['AVR'].flags[
@@ -899,21 +893,13 @@ class ILInstruction:
                             if base == Instructions.BRBC:
                                 cond = self._il.not_expr(size=0, value=cond)
 
-                        t = (
-                            self.label(self.addr + self.op(OpType.ADDR_IMM))
-                            or LowLevelILLabel()
-                        )
-                        f = self.label(self.addr + 2) or LowLevelILLabel()
+                        t = LowLevelILLabel()
+                        f = LowLevelILLabel()
 
                         self._il.append(self._il.if_expr(operand=cond, t=t, f=f))
-                        if not t.resolved:
-                            self._il.mark_label(t)
-                            self._il.append(
-                                self.jump(self.addr + self.op(OpType.ADDR_IMM))
-                            )
-
-                        if not f.resolved:
-                            self._il.mark_label(f)
+                        self._il.mark_label(t)
+                        self._il.append(self.jump(self.addr + self.op(OpType.ADDR_IMM)))
+                        self._il.mark_label(f)
 
                     case Instructions.DES:
                         self._il.append(self._il.unimplemented())

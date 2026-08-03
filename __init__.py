@@ -1,5 +1,6 @@
 # from binaryninja import Architecture, BinaryViewType, Endianness
 
+from .binavry import Instruction, OpType
 from .binavry.plugin import AVRArch, AVRView
 
 AVRArch.register()

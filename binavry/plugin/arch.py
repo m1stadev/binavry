@@ -10,6 +10,7 @@ from binaryninja import (
     Function,
     FunctionLifterContext,
     ILOperandType,
+    ILRegisterType,
     InstructionInfo,
     InstructionTextToken,
     InstructionTextTokenType,
@@ -122,6 +123,19 @@ class AVRArch(Architecture):
         'math': ['z', 'c', 'n', 'v', 's', 'h'],
         'mul': ['z', 'c'],
         'word': ['z', 'c', 'n', 'v', 's'],
+    }
+
+    flags_required_for_flag_condition = {
+        LowLevelILFlagCondition.LLFC_SGE: ['s'],
+        LowLevelILFlagCondition.LLFC_UGE: ['c'],
+        LowLevelILFlagCondition.LLFC_SLT: ['s'],
+        LowLevelILFlagCondition.LLFC_ULT: ['c'],
+        LowLevelILFlagCondition.LLFC_NE: ['z'],
+        LowLevelILFlagCondition.LLFC_E: ['z'],
+        LowLevelILFlagCondition.LLFC_POS: ['n'],
+        LowLevelILFlagCondition.LLFC_NEG: ['n'],
+        LowLevelILFlagCondition.LLFC_NO: ['v'],
+        LowLevelILFlagCondition.LLFC_O: ['v'],
     }
 
     global_regs = ['r0', 'r1']
@@ -311,13 +325,15 @@ class AVRArch(Architecture):
                             func.arch,
                         )
 
-                    # case (
-                    #    Instructions.EICALL
-                    #    | Instructions.EIJMP
-                    #    | Instructions.ICALL
-                    #    | Instructions.IJMP
-                    # ):
-                    #    info.add_branch(BranchType.IndirectBranch)
+                    case (
+                        Instructions.EICALL
+                        | Instructions.EIJMP
+                        | Instructions.ICALL
+                        | Instructions.IJMP
+                    ):
+                        block.add_pending_outgoing_edge(
+                            BranchType.IndirectBranch, addr, func.arch
+                        )
 
                 if end_block is False:
                     add_instruction_data(context, block, insn.data)
@@ -685,23 +701,13 @@ class AVRArch(Architecture):
                     if insn.idata in (Instructions.SBIC, Instructions.SBRC):
                         cond = func.not_expr(size=1, value=cond)
 
-                    try:
-                        t = insn.label(
-                            addr + len(Instruction.decode(data.read(addr, 4)).data)
-                        )
-                    except:
-                        func.append(func.no_ret())
-                        continue
-
-                    f = insn.label(addr)
-
-                    func.append(
-                        func.if_expr(
-                            operand=cond,
-                            t=t,
-                            f=f,
-                        )
-                    )
+                    next_len = len(Instruction.decode(data.read(addr, 4)).data)
+                    t = LowLevelILLabel()
+                    f = LowLevelILLabel()
+                    func.append(func.if_expr(operand=cond, t=t, f=f))
+                    func.mark_label(t)
+                    func.append(func.jump(insn.ptr(addr + next_len)))
+                    func.mark_label(f)
 
             curr_seg = data.get_segment_at(block.end - 1)
             if block.end == curr_seg.end:
