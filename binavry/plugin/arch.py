@@ -110,7 +110,7 @@ class AVRArch(Architecture):
         'word',
     ]
 
-    flags_written_By_flag_write_type = {
+    flags_written_by_flag_write_type = {
         'crry': ['c'],
         'zero': ['z'],
         'ngtv': ['n'],
