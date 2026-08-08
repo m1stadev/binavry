@@ -562,7 +562,12 @@ class AVRArch(Architecture):
             io_reg = context['mapped_io'][addr]
             op = next(op for op in insn.operands if op.op_type == OpType.ADDR_IO)
 
-            token = next(tokens.index(t) for t in tokens if t.value == op.value)
+            token = next(
+                tokens.index(t)
+                for t in tokens
+                if t.value == op.value
+                and t.type == InstructionTextTokenType.PossibleAddressToken
+            )
             tokens[token] = InstructionTextToken(
                 InstructionTextTokenType.DataSymbolToken,
                 io_reg['name'],
