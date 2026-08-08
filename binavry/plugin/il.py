@@ -3,7 +3,6 @@ from functools import cached_property
 from binaryninja import (
     Architecture,
     LowLevelILConst,
-    LowLevelILFlagCondition,
     LowLevelILFunction,
     LowLevelILInstruction,
     LowLevelILLabel,
@@ -13,7 +12,6 @@ from binaryninja import (
 from binaryninja.lowlevelil import ExpressionIndex
 
 from . import RAM_BEGIN, Instruction, Instructions, Operand, OpType
-from .compat import add_instruction_data
 
 
 class ILInstruction:
@@ -71,8 +69,7 @@ class ILInstruction:
         return self.const(self.op(typ))
 
     def op_ptr(self, typ: OpType):
-        val = self.op(typ)
-        return self._il.const_pointer(size=((val.bit_length() + 7) // 8), value=val)
+        return self.ptr(self.op(typ))
 
     def label(self, addr: int) -> LowLevelILLabel | None:
         insn = LowLevelILInstruction.create(self._il, self.const(addr))
@@ -221,20 +218,22 @@ class ILInstruction:
                     case Instructions.CP | Instructions.CPC:
                         match self.idata:
                             case Instructions.CP:
-                                expr = self._il.sub(
-                                    size=1, a=self.rd, b=self.rr, flags='math'
+                                self._il.append(
+                                    self._il.sub(
+                                        size=1, a=self.rd, b=self.rr, flags='cmp'
+                                    )
                                 )
 
                             case Instructions.CPC:
-                                expr = self._il.sub_borrow(
-                                    size=1,
-                                    a=self.rd,
-                                    b=self.rr,
-                                    carry=self._il.flag('c'),
-                                    flags='math',
+                                self._il.append(
+                                    self._il.sub_borrow(
+                                        size=1,
+                                        a=self.rd,
+                                        b=self.rr,
+                                        carry=self._il.flag('c'),
+                                        flags='cmp',
+                                    )
                                 )
-
-                        self._il.append(expr)
 
                     case Instructions.CPSE:
                         pass
@@ -387,7 +386,7 @@ class ILInstruction:
                         addr = self._il.add(
                             size=2,
                             a=self._il.reg(size=2, reg=reg),
-                            b=self._il.zero_extend(size=3, value=self.const(offset)),
+                            b=self.const(offset),
                         )
 
                     else:
@@ -518,7 +517,7 @@ class ILInstruction:
                 flag = self.op(OpType.BIT_SREG)
                 match (flag, self.idata):
                     case (0, Instructions.BRBC):
-                        grp = 'slt'
+                        grp = 'uge'
 
                     case (0, Instructions.BRBS):
                         grp = 'ult'
@@ -545,24 +544,35 @@ class ILInstruction:
                         grp = 'sge'
 
                     case (4, Instructions.BRBS):
-                        grp = 'uge'
+                        grp = 'slt'
 
                 if grp is not None:
-                    cond = self._il.flag_condition(
-                        getattr(LowLevelILFlagCondition, 'LLFC_' + grp.upper())
-                    )
+                    cond = self._il.flag_group(grp)
                 else:
                     cond = self._il.flag(Architecture['AVR'].flags[flag])
                     if self.idata == Instructions.BRBC:
                         cond = self._il.not_expr(size=0, value=cond)
 
-                t = LowLevelILLabel()
-                f = LowLevelILLabel()
+                dst = self.addr + self.op(OpType.ADDR_IMM)
+
+                t = self.label(dst)
+                indirect = t is None
+                if indirect:
+                    t = LowLevelILLabel()
+
+                f = self.label(self.addr + len(self.data))
+                fallthrough = f is None
+                if fallthrough:
+                    f = LowLevelILLabel()
 
                 self._il.append(self._il.if_expr(operand=cond, t=t, f=f))
-                self._il.mark_label(t)
-                self._il.append(self.jump(self.addr + self.op(OpType.ADDR_IMM)))
-                self._il.mark_label(f)
+
+                if indirect:
+                    self._il.mark_label(t)
+                    self._il.append(self._il.jump(self.ptr(dst)))
+
+                if fallthrough:
+                    self._il.mark_label(f)
 
             case [OpType.REG_DST, OpType.ADDR_IMM]:
                 # LDS
@@ -618,16 +628,15 @@ class ILInstruction:
                     case Instructions.ADIW | Instructions.SBIW:
                         match self.idata:
                             case Instructions.ADIW:
-                                op = self._il.add_carry
+                                op = self._il.add
 
                             case Instructions.SBIW:
-                                op = self._il.sub_borrow
+                                op = self._il.sub
 
                         val = op(
                             size=2,
                             a=self.rdw,
                             b=self.op_const(OpType.IMM),
-                            carry=self._il.flag('c'),
                             flags='word',
                         )
 
@@ -675,7 +684,7 @@ class ILInstruction:
                                 size=1,
                                 a=self.rd,
                                 b=self.op_const(OpType.IMM),
-                                flags='math',
+                                flags='cmp',
                             )
                         )
 
@@ -850,10 +859,10 @@ class ILInstruction:
                                 grp = 'sge'
 
                             case 'lt':
-                                grp = 'uge'
+                                grp = 'slt'
 
                             case 'sh':
-                                grp = 'slt'
+                                grp = 'uge'
 
                             case 'lo':
                                 grp = 'ult'
@@ -877,9 +886,7 @@ class ILInstruction:
                                 grp = 'o'
 
                         if grp is not None:
-                            cond = self._il.flag_condition(
-                                getattr(LowLevelILFlagCondition, 'LLFC_' + grp.upper())
-                            )
+                            cond = self._il.flag_group(grp)
                         else:
                             cond = self._il.flag(
                                 Architecture['AVR'].flags[
@@ -893,13 +900,26 @@ class ILInstruction:
                             if base == Instructions.BRBC:
                                 cond = self._il.not_expr(size=0, value=cond)
 
-                        t = LowLevelILLabel()
-                        f = LowLevelILLabel()
+                        dst = self.addr + self.op(OpType.ADDR_IMM)
+
+                        t = self.label(dst)
+                        indirect = t is None
+                        if indirect:
+                            t = LowLevelILLabel()
+
+                        f = self.label(self.addr + len(self.data))
+                        fallthrough = f is None
+                        if fallthrough:
+                            f = LowLevelILLabel()
 
                         self._il.append(self._il.if_expr(operand=cond, t=t, f=f))
-                        self._il.mark_label(t)
-                        self._il.append(self.jump(self.addr + self.op(OpType.ADDR_IMM)))
-                        self._il.mark_label(f)
+
+                        if indirect:
+                            self._il.mark_label(t)
+                            self._il.append(self._il.jump(self.ptr(dst)))
+
+                        if fallthrough:
+                            self._il.mark_label(f)
 
                     case Instructions.DES:
                         self._il.append(self._il.unimplemented())
@@ -911,7 +931,13 @@ class ILInstruction:
                         expr = self._il.breakpoint()
 
                     case Instructions.ICALL | Instructions.IJMP:
-                        val = self._il.reg(size=2, reg='Z')
+                        val = self._il.shift_left(
+                            size=3,
+                            a=self._il.zero_extend(
+                                size=3, value=self._il.reg(size=2, reg='Z')
+                            ),
+                            b=self.const(1),
+                        )
                         match base:
                             case Instructions.ICALL:
                                 expr = self._il.call(val)

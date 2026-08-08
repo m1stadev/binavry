@@ -9,7 +9,6 @@ from binaryninja import (
     FlagWriteTypeName,
     Function,
     FunctionLifterContext,
-    ILOperandType,
     ILRegisterType,
     InstructionInfo,
     InstructionTextToken,
@@ -21,16 +20,14 @@ from binaryninja import (
     LowLevelILLabel,
     LowLevelILOperation,
     RegisterInfo,
-    RegisterName,
-    SemanticClassType,
     SemanticGroupType,
     Symbol,
     SymbolType,
     Type,
 )
-from binaryninja.lowlevelil import ExpressionIndex
+from binaryninja.lowlevelil import ExpressionIndex, ILRegister
 
-from . import RAM_BEGIN, Instruction, Instructions, Operand, OpType
+from . import RAM_BEGIN, Instruction, Instructions, OpType
 from .compat import add_instruction_data, get_instruction_data
 from .il import ILInstruction
 
@@ -81,6 +78,7 @@ class AVRArch(Architecture):
         'SP': RegisterInfo('SP', 2),
         'SPH': RegisterInfo('SP', 1, 0),
         'SPL': RegisterInfo('SP', 1, 1),
+        'SREG': RegisterInfo('SREG', 1),
     }
 
     flags = ['c', 'z', 'n', 'v', 's', 'h', 't', 'i']
@@ -89,7 +87,7 @@ class AVRArch(Architecture):
         'z': FlagRole.ZeroFlagRole,
         'n': FlagRole.NegativeSignFlagRole,
         'v': FlagRole.OverflowFlagRole,
-        's': FlagRole.PositiveSignFlagRole,
+        's': FlagRole.SpecialFlagRole,
         'h': FlagRole.HalfCarryFlagRole,
         't': FlagRole.SpecialFlagRole,
         'i': FlagRole.SpecialFlagRole,
@@ -106,6 +104,7 @@ class AVRArch(Architecture):
         'gint',
         'bit',
         'math',
+        'cmp',
         'mul',
         'word',
     ]
@@ -121,21 +120,61 @@ class AVRArch(Architecture):
         'gint': ['i'],
         'bit': ['z', 'n', 'v', 's'],
         'math': ['z', 'c', 'n', 'v', 's', 'h'],
+        'cmp': ['z', 'c', 'n', 'v', 's', 'h'],
         'mul': ['z', 'c'],
         'word': ['z', 'c', 'n', 'v', 's'],
     }
 
+    semantic_flag_groups = [
+        'slt',
+        'ult',
+        'ne',
+        'e',
+        'pos',
+        'neg',
+        'no',
+        'o',
+        'sge',
+        'uge',
+    ]
+
+    flags_required_for_semantic_flag_group = {
+        'slt': ['s'],
+        'ult': ['c'],
+        'ne': ['z'],
+        'e': ['z'],
+        'pos': ['n'],
+        'neg': ['n'],
+        'no': ['v'],
+        'o': ['v'],
+        'sge': ['s'],
+        'uge': ['c'],
+    }
+
+    flag_conditions_for_semantic_flag_group = {
+        'slt': {None: LowLevelILFlagCondition.LLFC_SLT},
+        'ult': {None: LowLevelILFlagCondition.LLFC_ULT},
+        'ne': {None: LowLevelILFlagCondition.LLFC_NE},
+        'e': {None: LowLevelILFlagCondition.LLFC_E},
+        'pos': {None: LowLevelILFlagCondition.LLFC_POS},
+        'neg': {None: LowLevelILFlagCondition.LLFC_NEG},
+        'no': {None: LowLevelILFlagCondition.LLFC_NO},
+        'o': {None: LowLevelILFlagCondition.LLFC_O},
+        'sge': {None: LowLevelILFlagCondition.LLFC_SGE},
+        'uge': {None: LowLevelILFlagCondition.LLFC_UGE},
+    }
+
     flags_required_for_flag_condition = {
-        LowLevelILFlagCondition.LLFC_SGE: ['s'],
-        LowLevelILFlagCondition.LLFC_UGE: ['c'],
-        LowLevelILFlagCondition.LLFC_SLT: ['s'],
-        LowLevelILFlagCondition.LLFC_ULT: ['c'],
-        LowLevelILFlagCondition.LLFC_NE: ['z'],
         LowLevelILFlagCondition.LLFC_E: ['z'],
-        LowLevelILFlagCondition.LLFC_POS: ['n'],
+        LowLevelILFlagCondition.LLFC_NE: ['z'],
+        LowLevelILFlagCondition.LLFC_SLT: ['s'],
+        LowLevelILFlagCondition.LLFC_SGE: ['s'],
+        LowLevelILFlagCondition.LLFC_ULT: ['c'],
+        LowLevelILFlagCondition.LLFC_UGE: ['c'],
         LowLevelILFlagCondition.LLFC_NEG: ['n'],
-        LowLevelILFlagCondition.LLFC_NO: ['v'],
+        LowLevelILFlagCondition.LLFC_POS: ['n'],
         LowLevelILFlagCondition.LLFC_O: ['v'],
+        LowLevelILFlagCondition.LLFC_NO: ['v'],
     }
 
     global_regs = ['r0', 'r1']
@@ -181,6 +220,107 @@ class AVRArch(Architecture):
         ),
     }
 
+    def get_flag_write_low_level_il(
+        self,
+        op: LowLevelILOperation,
+        size: int,
+        write_type: FlagWriteTypeName | None,
+        flag: FlagType,
+        operands: list[ILRegisterType],
+        il: LowLevelILFunction,
+    ) -> ExpressionIndex:
+        def val(operand: ILRegisterType) -> ExpressionIndex:
+            if isinstance(operand, ILRegister):
+                return il.reg(size=1, reg=operand)
+            return il.const(size=1, value=operand)
+
+        match (op, flag):
+            case (LowLevelILOperation.LLIL_SBB, 'c'):
+                return il.compare_unsigned_less_than(
+                    size=2,
+                    a=il.zero_extend(size=2, value=val(operands[0])),
+                    b=il.add(
+                        size=2,
+                        a=il.zero_extend(size=2, value=val(operands[1])),
+                        b=il.zero_extend(size=2, value=il.flag('c')),
+                    ),
+                )
+
+            case (LowLevelILOperation.LLIL_SBB, 'v' | 's'):
+                result = il.sub_borrow(
+                    size=1, a=val(operands[0]), b=val(operands[1]), carry=il.flag('c')
+                )
+                overflow = il.compare_signed_less_than(
+                    size=1,
+                    a=il.and_expr(
+                        size=1,
+                        a=il.xor_expr(size=1, a=val(operands[0]), b=val(operands[1])),
+                        b=il.xor_expr(size=1, a=val(operands[0]), b=result),
+                    ),
+                    b=il.const(size=1, value=0),
+                )
+                if flag == 'v':
+                    return overflow
+
+                negative = il.compare_signed_less_than(
+                    size=1,
+                    a=il.sub_borrow(
+                        size=1,
+                        a=val(operands[0]),
+                        b=val(operands[1]),
+                        carry=il.flag('c'),
+                    ),
+                    b=il.const(size=1, value=0),
+                )
+                return il.xor_expr(size=0, a=negative, b=overflow)
+
+            case (LowLevelILOperation.LLIL_ASR, 'c'):
+                return il.test_bit(
+                    size=1, a=val(operands[0]), b=il.const(size=1, value=0)
+                )
+
+            case (
+                LowLevelILOperation.LLIL_MULU_DP | LowLevelILOperation.LLIL_MULS_DP,
+                'c',
+            ):
+                extend = (
+                    il.zero_extend
+                    if op == LowLevelILOperation.LLIL_MULU_DP
+                    else il.sign_extend
+                )
+                return il.test_bit(
+                    size=2,
+                    a=il.mult(
+                        size=2,
+                        a=extend(size=2, value=val(operands[0])),
+                        b=extend(size=2, value=val(operands[1])),
+                    ),
+                    b=il.const(size=1, value=15),
+                )
+
+            case _:
+                if flag == 's':
+                    return il.xor_expr(
+                        size=0,
+                        a=self.get_default_flag_write_low_level_il(
+                            op, size, FlagRole.NegativeSignFlagRole, operands, il
+                        ),
+                        b=self.get_default_flag_write_low_level_il(
+                            op, size, FlagRole.OverflowFlagRole, operands, il
+                        ),
+                    )
+
+                return super().get_flag_write_low_level_il(
+                    op, size, write_type, flag, operands, il
+                )
+
+    def get_semantic_flag_group_low_level_il(
+        self, sem_group: SemanticGroupType | None, il: LowLevelILFunction
+    ) -> ExpressionIndex:
+        return self.get_flag_condition_low_level_il(
+            self.flag_conditions_for_semantic_flag_group[sem_group][None], None, il
+        )
+
     def analyze_basic_blocks(
         self, func: Function, context: BasicBlockAnalysisContext
     ) -> None:
@@ -215,6 +355,8 @@ class AVRArch(Architecture):
                     Instructions.BRBC,
                     Instructions.BRBS,
                     Instructions.CPSE,
+                    Instructions.EIJMP,
+                    Instructions.IJMP,
                     Instructions.JMP,
                     Instructions.RET,
                     Instructions.RETI,
@@ -253,11 +395,11 @@ class AVRArch(Architecture):
                             RAM_BEGIN + 0x20 + op.value,
                             namespace=SymbolType.DataSymbol,
                         )
-
-                        arch_context['mapped_io'][addr] = {
-                            'name': io_reg.name,
-                            'addr': io_reg.address,
-                        }
+                        if io_reg is not None:
+                            arch_context['mapped_io'][addr] = {
+                                'name': io_reg.name,
+                                'addr': io_reg.address,
+                            }
 
                     if end_block is False:
                         add_instruction_data(context, block, insn.data)
@@ -702,12 +844,26 @@ class AVRArch(Architecture):
                         cond = func.not_expr(size=1, value=cond)
 
                     next_len = len(Instruction.decode(data.read(addr, 4)).data)
-                    t = LowLevelILLabel()
-                    f = LowLevelILLabel()
+                    skipped = addr + next_len
+
+                    t = func.get_label_for_address(block.arch, skipped)
+                    indirect = t is None
+                    if indirect:
+                        t = LowLevelILLabel()
+
+                    f = func.get_label_for_address(block.arch, addr)
+                    fallthrough = f is None
+                    if fallthrough:
+                        f = LowLevelILLabel()
+
                     func.append(func.if_expr(operand=cond, t=t, f=f))
-                    func.mark_label(t)
-                    func.append(func.jump(insn.ptr(addr + next_len)))
-                    func.mark_label(f)
+
+                    if indirect:
+                        func.mark_label(t)
+                        func.append(func.jump(insn.ptr(skipped)))
+
+                    if fallthrough:
+                        func.mark_label(f)
 
             curr_seg = data.get_segment_at(block.end - 1)
             if block.end == curr_seg.end:
